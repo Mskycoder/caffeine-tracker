@@ -22,6 +22,7 @@
 | Recharts | 3.8.x | Decay curve visualization |
 | date-fns | 4.1.x | Date formatting / calculations |
 | Vitest | 4.1.x | Unit testing |
+| vite-plugin-pwa | 1.2.0 | PWA service worker + manifest |
 
 ## Architecture
 
@@ -32,6 +33,7 @@
 - **Data** (`src/data/`): `presets.ts` (drink preset definitions), `colors.ts` (preset color map, hash function for custom drinks, daily total gradient).
 - **Components** (`src/components/`): `CaffeineStatus` (hero: current mg + sleep estimate + caffeine curfew + daily total indicator), `DecayCurveChart` (Recharts stacked AreaChart with per-drink colored layers and 48h responsive-height decay curve), `DrinkHistory` (today's drinks list), `DrinkLoggerModal` (FAB + native dialog modal wrapping DrinkLogger), `DrinkLogger` (preset + custom drink entry, rendered inside modal), `DrinkPresets`, `CustomDrinkForm`, `SettingsPanel` (collapsible: metabolism selector, threshold input, bedtime picker), `Header`.
 - **Hooks** (`src/hooks/`): `useCurrentTime` (30-second interval timer for live status updates).
+- **PWA** (`vite.config.ts` VitePWA plugin): Generates service worker (Workbox precache of all static assets) and web app manifest. `registerType: 'autoUpdate'` for silent updates. No custom service worker code -- pure config.
 
 ## Conventions
 
