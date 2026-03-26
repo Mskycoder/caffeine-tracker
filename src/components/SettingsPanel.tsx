@@ -33,7 +33,7 @@ export function SettingsPanel() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
+        className="w-full flex items-center justify-between px-4 py-3 text-left min-h-[44px]"
       >
         <span className="text-sm font-medium text-gray-700">Settings</span>
         <span
@@ -67,7 +67,7 @@ export function SettingsPanel() {
                     type="button"
                     aria-pressed={isActive}
                     onClick={() => updateSettings({ halfLifeHours: preset.halfLife })}
-                    className={`flex-1 py-2 px-1 text-center border ${roundedClass} ${
+                    className={`flex-1 py-3 px-2 min-h-[44px] text-center border ${roundedClass} ${
                       isActive
                         ? 'bg-blue-500 text-white border-blue-500'
                         : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
@@ -99,7 +99,7 @@ export function SettingsPanel() {
                   const val = Math.min(200, Math.max(10, Number(e.target.value)));
                   updateSettings({ thresholdMg: val });
                 }}
-                className="w-20 text-center border border-gray-300 rounded px-2 py-1 text-sm"
+                className="w-20 text-center border border-gray-300 rounded px-2 py-2 text-sm min-h-[44px]"
               />
               <span className="text-sm text-gray-500">mg</span>
             </div>
@@ -113,7 +113,7 @@ export function SettingsPanel() {
                 type="time"
                 value={settings.targetBedtime ?? '00:00'}
                 onChange={(e) => updateSettings({ targetBedtime: e.target.value })}
-                className="block mt-1 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 font-normal normal-case tracking-normal"
+                className="block mt-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 font-normal normal-case tracking-normal min-h-[44px]"
               />
             </label>
           </div>

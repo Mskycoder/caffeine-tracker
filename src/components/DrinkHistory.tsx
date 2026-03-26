@@ -100,19 +100,19 @@ export function DrinkHistory() {
                     type="datetime-local"
                     value={editTimestamp}
                     onChange={(e) => setEditTimestamp(e.target.value)}
-                    className="text-sm border border-gray-300 rounded px-2 py-1"
+                    className="min-h-[44px] text-sm border border-gray-300 rounded px-3 py-2 flex-1"
                   />
                   <button
                     type="button"
                     onClick={saveEdit}
-                    className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="min-h-[44px] px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     Save
                   </button>
                   <button
                     type="button"
                     onClick={cancelEdit}
-                    className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
+                    className="min-h-[44px] px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
                   >
                     Cancel
                   </button>
@@ -129,7 +129,7 @@ export function DrinkHistory() {
                       type="button"
                       onClick={() => startEdit(drink)}
                       aria-label={`Edit ${drink.name}`}
-                      className="text-xs text-gray-400 hover:text-blue-500"
+                      className="min-h-[44px] px-3 py-2 text-sm text-gray-400 hover:text-blue-500 flex items-center"
                     >
                       edit
                     </button>
@@ -137,7 +137,7 @@ export function DrinkHistory() {
                       type="button"
                       onClick={() => handleDelete(drink.id)}
                       aria-label={`Delete ${drink.name}`}
-                      className={`text-xs px-2 py-1 rounded transition-colors ${
+                      className={`min-h-[44px] px-3 py-2 text-sm rounded transition-colors flex items-center ${
                         confirmingDeleteId === drink.id
                           ? 'bg-red-100 text-red-700 font-medium'
                           : 'text-gray-400 hover:text-red-500'

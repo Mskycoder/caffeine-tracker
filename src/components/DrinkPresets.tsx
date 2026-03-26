@@ -41,7 +41,7 @@ export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
           key={preset.presetId}
           type="button"
           onClick={() => handleTap(preset)}
-          className={`w-full text-left px-4 py-3 rounded-lg border transition-colors duration-300
+          className={`w-full text-left px-4 py-3 min-h-[44px] rounded-lg border transition-colors duration-300
             ${
               confirmedId === preset.presetId
                 ? 'bg-green-50 border-green-400'

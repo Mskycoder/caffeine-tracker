@@ -39,7 +39,7 @@ export function CustomDrinkForm({ getTimestamp }: CustomDrinkFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+    <form onSubmit={handleSubmit} className="flex gap-2 items-center">
       <input
         type="number"
         min="1"
@@ -48,7 +48,7 @@ export function CustomDrinkForm({ getTimestamp }: CustomDrinkFormProps) {
         value={mgInput}
         onChange={(e) => setMgInput(e.target.value)}
         required
-        className="w-20 px-3 py-2 border border-gray-200 rounded-lg"
+        className="w-20 px-3 py-2 border border-gray-200 rounded-lg min-h-[44px]"
         aria-label="Caffeine amount in mg"
       />
       <input
@@ -56,12 +56,12 @@ export function CustomDrinkForm({ getTimestamp }: CustomDrinkFormProps) {
         placeholder="Name (optional)"
         value={nameInput}
         onChange={(e) => setNameInput(e.target.value)}
-        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg"
+        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg min-h-[44px]"
         aria-label="Drink name"
       />
       <button
         type="submit"
-        className={`px-4 py-2 rounded-lg font-medium transition-colors duration-300
+        className={`min-h-[44px] px-4 py-2 rounded-lg font-medium transition-colors duration-300
           ${confirmed ? 'bg-green-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
       >
         {confirmed ? 'Logged' : 'Log'}

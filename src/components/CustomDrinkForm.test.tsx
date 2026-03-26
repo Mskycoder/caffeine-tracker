@@ -81,4 +81,24 @@ describe('CustomDrinkForm', () => {
     const { drinks } = useCaffeineStore.getState();
     expect(drinks).toHaveLength(0);
   });
+
+  describe('touch targets', () => {
+    it('mg input has 44px minimum touch target', () => {
+      render(<CustomDrinkForm getTimestamp={getTimestamp} />);
+      const input = screen.getByLabelText(/caffeine amount/i);
+      expect(input.className).toContain('min-h-[44px]');
+    });
+
+    it('name input has 44px minimum touch target', () => {
+      render(<CustomDrinkForm getTimestamp={getTimestamp} />);
+      const input = screen.getByLabelText(/drink name/i);
+      expect(input.className).toContain('min-h-[44px]');
+    });
+
+    it('submit button has 44px minimum touch target', () => {
+      render(<CustomDrinkForm getTimestamp={getTimestamp} />);
+      const btn = screen.getByRole('button', { name: /log/i });
+      expect(btn.className).toContain('min-h-[44px]');
+    });
+  });
 });

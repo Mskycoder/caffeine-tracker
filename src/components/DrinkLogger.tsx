@@ -7,8 +7,9 @@ import { datetimeLocalToEpoch } from '../utils/datetime';
  * Container wiring presets + custom form + shared time picker.
  *
  * Per D-06: Default to current time, optional datetime-local picker for backdating.
- * Per D-07: Drink logging section in the stacked layout.
+ * Rendered inside DrinkLoggerModal dialog (Phase 7, D-01).
  * The shared time picker state is owned here and passed to children via getTimestamp prop.
+ * Per D-04: Touch targets on time picker elements are 44px minimum.
  */
 export function DrinkLogger() {
   const [timeOverride, setTimeOverride] = useState('');
@@ -21,9 +22,7 @@ export function DrinkLogger() {
   }, [timeOverride]);
 
   return (
-    <section>
-      <h2 className="text-lg font-semibold text-gray-800 mb-3">Log a Drink</h2>
-
+    <>
       {/* Time picker: defaults to "now", can be overridden for backdating */}
       <div className="flex items-center gap-2 mb-4">
         <label htmlFor="time-override" className="text-sm text-gray-600">
@@ -34,7 +33,7 @@ export function DrinkLogger() {
           type="datetime-local"
           value={timeOverride}
           onChange={(e) => setTimeOverride(e.target.value)}
-          className="px-2 py-1 border border-gray-200 rounded text-sm"
+          className="px-3 py-2 border border-gray-200 rounded text-sm min-h-[44px]"
         />
         {!timeOverride && (
           <span className="text-sm text-gray-400">Now</span>
@@ -43,7 +42,7 @@ export function DrinkLogger() {
           <button
             type="button"
             onClick={() => setTimeOverride('')}
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="text-sm text-blue-600 hover:text-blue-800 min-h-[44px] px-2 flex items-center"
           >
             Reset
           </button>
@@ -58,6 +57,6 @@ export function DrinkLogger() {
         <h3 className="text-sm font-medium text-gray-700 mb-2">Custom Entry</h3>
         <CustomDrinkForm getTimestamp={getTimestamp} />
       </div>
-    </section>
+    </>
   );
 }

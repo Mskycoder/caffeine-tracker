@@ -63,6 +63,13 @@ describe('DecayCurveChart', () => {
     spy.mockRestore();
   });
 
+  it('chart container has responsive height classes', () => {
+    render(<DecayCurveChart />);
+    const container = screen.getByTestId('responsive-container').parentElement;
+    expect(container?.className).toContain('h-[220px]');
+    expect(container?.className).toContain('sm:h-[300px]');
+  });
+
   it('passes store drinks to generateStackedCurveData', () => {
     const testDrinks = [{
       id: 'test-1',

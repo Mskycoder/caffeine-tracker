@@ -195,6 +195,46 @@ describe('DrinkHistory', () => {
     });
   });
 
+  describe('touch targets', () => {
+    const ONE_DRINK = [{
+      id: '1',
+      name: 'Espresso',
+      caffeineMg: 200,
+      timestamp: new Date('2026-03-25T08:00:00').getTime(),
+      presetId: 'espresso',
+    }];
+
+    beforeEach(() => {
+      useCaffeineStore.setState({ drinks: ONE_DRINK });
+    });
+
+    it('edit button has 44px minimum touch target', () => {
+      render(<DrinkHistory />);
+      const editBtn = screen.getByRole('button', { name: /edit espresso/i });
+      expect(editBtn.className).toContain('min-h-[44px]');
+    });
+
+    it('delete button has 44px minimum touch target', () => {
+      render(<DrinkHistory />);
+      const deleteBtn = screen.getByRole('button', { name: /delete espresso/i });
+      expect(deleteBtn.className).toContain('min-h-[44px]');
+    });
+
+    it('edit mode save button has 44px minimum touch target', () => {
+      render(<DrinkHistory />);
+      fireEvent.click(screen.getByRole('button', { name: /edit espresso/i }));
+      const saveBtn = screen.getByText('Save');
+      expect(saveBtn.className).toContain('min-h-[44px]');
+    });
+
+    it('edit mode cancel button has 44px minimum touch target', () => {
+      render(<DrinkHistory />);
+      fireEvent.click(screen.getByRole('button', { name: /edit espresso/i }));
+      const cancelBtn = screen.getByText('Cancel');
+      expect(cancelBtn.className).toContain('min-h-[44px]');
+    });
+  });
+
   describe('edit drink', () => {
     const TWO_DRINKS = [
       {

@@ -68,7 +68,7 @@ function StackedTooltip({ active, payload, label, drinks }: StackedTooltipProps)
  * - Custom tooltip showing per-drink breakdown on hover (D-06)
  *
  * Data is recomputed every 30 seconds via useCurrentTime hook.
- * Parent div has explicit h-[300px] height (Recharts Pitfall 1).
+ * Parent div has responsive height: h-[220px] on mobile, sm:h-[300px] on desktop (Recharts Pitfall 1).
  * XAxis uses type="number" with epoch ms domain (Recharts Pitfall 2).
  */
 export function DecayCurveChart() {
@@ -114,7 +114,7 @@ export function DecayCurveChart() {
       <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
         Caffeine Level
       </h2>
-      <div className="h-[300px] w-full">
+      <div className="h-[220px] sm:h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={stackedData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />

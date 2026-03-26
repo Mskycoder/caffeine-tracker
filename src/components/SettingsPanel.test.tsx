@@ -107,4 +107,33 @@ describe('SettingsPanel', () => {
     fireEvent.change(input, { target: { value: '22:30' } });
     expect(useCaffeineStore.getState().settings.targetBedtime).toBe('22:30');
   });
+
+  describe('touch targets', () => {
+    it('settings toggle has 44px minimum touch target', () => {
+      render(<SettingsPanel />);
+      const toggle = screen.getByRole('button', { name: /settings/i });
+      expect(toggle.className).toContain('min-h-[44px]');
+    });
+
+    it('metabolism buttons have 44px minimum touch target', () => {
+      render(<SettingsPanel />);
+      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      const fastBtn = screen.getByRole('button', { name: /fast/i });
+      expect(fastBtn.className).toContain('min-h-[44px]');
+    });
+
+    it('threshold input has 44px minimum touch target', () => {
+      render(<SettingsPanel />);
+      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      const input = screen.getByRole('spinbutton');
+      expect(input.className).toContain('min-h-[44px]');
+    });
+
+    it('bedtime input has 44px minimum touch target', () => {
+      render(<SettingsPanel />);
+      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      const input = screen.getByLabelText(/target bedtime/i);
+      expect(input.className).toContain('min-h-[44px]');
+    });
+  });
 });
