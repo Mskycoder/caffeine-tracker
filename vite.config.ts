@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  base: '/caffeine-tracker/',
   plugins: [
     react(),
     tailwindcss(),
@@ -18,8 +19,8 @@ export default defineConfig({
         theme_color: '#863bff',
         background_color: '#f9fafb',
         display: 'standalone',
-        scope: '/',
-        start_url: '/',
+        scope: '/caffeine-tracker/',
+        start_url: '/caffeine-tracker/',
         icons: [
           {
             src: 'pwa-192x192.png',
