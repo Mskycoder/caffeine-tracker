@@ -1,4 +1,3 @@
-import { DEFAULT_KA } from './constants';
 import {
   singleDrinkLevel,
   getCaffeineLevel,

@@ -1,0 +1,93 @@
+// @vitest-environment happy-dom
+import { render, screen } from '@testing-library/react';
+import { CaffeineStatus } from './CaffeineStatus';
+import { useCaffeineStore } from '../store/caffeine-store';
+
+// Fixed "now" for deterministic tests: 2024-06-15 12:00:00 UTC
+const FIXED_NOW = new Date('2024-06-15T12:00:00Z').getTime();
+
+vi.mock('../hooks/useCurrentTime', () => ({
+  useCurrentTime: () => FIXED_NOW,
+}));
+
+describe('CaffeineStatus', () => {
+  beforeEach(() => {
+    // Reset store to defaults before each test
+    useCaffeineStore.setState({
+      drinks: [],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
+    });
+  });
+
+  it('displays current caffeine level in mg', () => {
+    // 200mg espresso logged 1 hour ago -- should be partially decayed (between 100-200mg)
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-1',
+        name: 'Espresso',
+        caffeineMg: 200,
+        timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
+        presetId: 'espresso',
+      }],
+    });
+
+    render(<CaffeineStatus />);
+
+    // Should display a number followed by "mg"
+    const mgText = screen.getByText('mg');
+    expect(mgText).toBeInTheDocument();
+
+    // The parent element should contain a rounded number > 100 and < 200
+    const bigNumber = mgText.closest('p')!;
+    const numericValue = parseInt(bigNumber.textContent!, 10);
+    expect(numericValue).toBeGreaterThan(100);
+    expect(numericValue).toBeLessThan(200);
+  });
+
+  it('shows sleep-ready time when above threshold', () => {
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-2',
+        name: 'Espresso',
+        caffeineMg: 200,
+        timestamp: FIXED_NOW - 3_600_000,
+        presetId: 'espresso',
+      }],
+    });
+
+    render(<CaffeineStatus />);
+
+    // Should show "Safe to sleep by" followed by a time
+    const safeText = screen.getByText(/Safe to sleep by/);
+    expect(safeText).toBeInTheDocument();
+    expect(safeText.textContent).toMatch(/Safe to sleep by \d{1,2}:\d{2} [AP]M/);
+  });
+
+  it('shows clear to sleep when below threshold', () => {
+    // 10mg drink logged 10 hours ago -- should be well below 50mg threshold
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-3',
+        name: 'Tea',
+        caffeineMg: 10,
+        timestamp: FIXED_NOW - 36_000_000, // 10 hours ago
+        presetId: 'tea',
+      }],
+    });
+
+    render(<CaffeineStatus />);
+
+    expect(screen.getByText("You're clear to sleep")).toBeInTheDocument();
+  });
+
+  it('shows 0 mg when no drinks logged', () => {
+    render(<CaffeineStatus />);
+
+    // With no drinks, caffeine is 0
+    const mgText = screen.getByText('mg');
+    const bigNumber = mgText.closest('p')!;
+    expect(bigNumber.textContent).toContain('0');
+
+    expect(screen.getByText("You're clear to sleep")).toBeInTheDocument();
+  });
+});

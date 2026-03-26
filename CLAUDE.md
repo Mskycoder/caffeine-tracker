@@ -29,6 +29,8 @@
 - **Store** (`src/store/`): Zustand store with `persist` middleware. Shape: `{ drinks: DrinkEntry[], settings: Settings, ...actions }`.
 - **Types** (`src/engine/types.ts`): `DrinkEntry` (id, name, caffeineMg, timestamp, presetId), `Settings` (halfLifeHours, thresholdMg, targetBedtime), `CurvePoint`, `DrinkCurvePoint`.
 - **Constants** (`src/engine/constants.ts`): `DEFAULT_KA = 4.6`, `BIOAVAILABILITY = 0.99`, default half-life 5hr, threshold 50mg.
+- **Components** (`src/components/`): `CaffeineStatus` (hero: current mg + sleep estimate), `DecayCurveChart` (Recharts AreaChart with 48h decay curve), `DrinkHistory` (today's drinks list), `DrinkLogger` (preset + custom drink entry), `DrinkPresets`, `CustomDrinkForm`, `Header`.
+- **Hooks** (`src/hooks/`): `useCurrentTime` (30-second interval timer for live status updates).
 
 ## Conventions
 
