@@ -7,6 +7,78 @@ import {
 import type { DrinkEntry, CurvePoint } from './types';
 
 /**
+ * Parse "HH:mm" bedtime string into the next occurrence as epoch ms.
+ * If the time has already passed today, returns tomorrow's occurrence.
+ *
+ * Pure function: no Date.now() calls -- `now` is passed as argument (per D-05).
+ */
+export function parseNextBedtime(bedtimeStr: string, now: number): number {
+  const [hours, minutes] = bedtimeStr.split(':').map(Number);
+  const today = new Date(now);
+  today.setHours(hours, minutes, 0, 0);
+
+  let bedtimeMs = today.getTime();
+  if (bedtimeMs <= now) {
+    bedtimeMs += 24 * 60 * 60 * 1000; // roll to tomorrow
+  }
+  return bedtimeMs;
+}
+
+/**
+ * Calculate the latest time a standard dose could be consumed such that
+ * total caffeine at bedtime stays below threshold.
+ *
+ * Forward-scans from `now` to `targetBedtimeMs` in PROJECTION_STEP_MS (5 min) steps.
+ * At each candidate time T, computes the contribution of a standard dose consumed
+ * at T to caffeine level at bedtime. Since later drinks have less time to decay,
+ * contribution increases monotonically -- so we stop at the first time that exceeds
+ * the budget and return the previous step.
+ *
+ * Returns epoch ms of the curfew time, or null if:
+ *   - Existing drinks already push bedtime caffeine above threshold (budget <= 0)
+ *   - Even drinking right now would exceed the budget (no valid time)
+ *
+ * Pure function: no Date.now() calls -- all times passed as arguments (per D-05).
+ */
+export function getCaffeineCurfew(
+  drinks: DrinkEntry[],
+  targetBedtimeMs: number,
+  now: number,
+  halfLifeHours: number,
+  thresholdMg: number,
+  standardDoseMg: number = 95,
+  ka: number = DEFAULT_KA,
+): number | null {
+  // Current caffeine contribution at bedtime from existing drinks
+  const existingAtBedtime = getCaffeineLevel(drinks, targetBedtimeMs, halfLifeHours, ka);
+
+  // Budget remaining before exceeding threshold
+  const budget = thresholdMg - existingAtBedtime;
+
+  if (budget <= 0) return null; // Already over threshold at bedtime
+
+  // Forward-scan from now to bedtime in 5-minute steps
+  let curfew: number | null = null;
+  for (let t = now; t <= targetBedtimeMs; t += PROJECTION_STEP_MS) {
+    const fakeDrink: DrinkEntry = {
+      id: 'curfew-calc',
+      name: 'Curfew',
+      caffeineMg: standardDoseMg,
+      timestamp: t,
+      presetId: null,
+    };
+    const contribution = singleDrinkLevel(fakeDrink, targetBedtimeMs, halfLifeHours, ka);
+    if (contribution <= budget) {
+      curfew = t; // This time works; keep scanning for a later one
+    } else {
+      break; // Past this point, later drinks contribute more at bedtime
+    }
+  }
+
+  return curfew;
+}
+
+/**
  * One-compartment oral dosing model for a single drink.
  *
  * C(t) = D * F * (ka / (ka - ke)) * (e^(-ke*t) - e^(-ka*t))

@@ -3,13 +3,15 @@ import { DrinkLogger } from './components/DrinkLogger';
 import { CaffeineStatus } from './components/CaffeineStatus';
 import { DecayCurveChart } from './components/DecayCurveChart';
 import { DrinkHistory } from './components/DrinkHistory';
+import { SettingsPanel } from './components/SettingsPanel';
 
 /**
  * App shell with centered single-column layout.
  *
  * Per D-13: Layout order: Header -> Drink Logger -> Status Display (hero) ->
- *           Decay Chart -> Drink History. Single-column stacked, max-width ~512px.
+ *           Decay Chart -> Drink History -> Settings Panel.
  * Per D-08: Max-width centered container (~480-640px). max-w-lg = 512px.
+ * Per D-01: SettingsPanel below DrinkHistory, collapsed by default.
  */
 function App() {
   return (
@@ -20,6 +22,7 @@ function App() {
         <CaffeineStatus />
         <DecayCurveChart />
         <DrinkHistory />
+        <SettingsPanel />
       </div>
     </div>
   );

@@ -4,6 +4,8 @@ import {
   getSleepReadyTime,
   generateCurveData,
   getDrinkContributions,
+  parseNextBedtime,
+  getCaffeineCurfew,
 } from './caffeine';
 import type { DrinkEntry } from './types';
 
@@ -266,5 +268,143 @@ describe('getDrinkContributions', () => {
     const sumContribs = Object.values(contributions).reduce((sum, v) => sum + v, 0);
 
     expect(sumContribs).toBeCloseTo(total, 10);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseNextBedtime
+// ---------------------------------------------------------------------------
+describe('parseNextBedtime', () => {
+  it('"22:00" when now is noon returns same-day 10pm', () => {
+    // Set now to noon on a known date
+    const noon = new Date(BASE_TIME);
+    noon.setHours(12, 0, 0, 0);
+    const nowMs = noon.getTime();
+
+    const result = parseNextBedtime('22:00', nowMs);
+
+    const expected = new Date(nowMs);
+    expected.setHours(22, 0, 0, 0);
+    expect(result).toBe(expected.getTime());
+  });
+
+  it('"22:00" when now is 11pm returns next-day 10pm', () => {
+    const late = new Date(BASE_TIME);
+    late.setHours(23, 0, 0, 0);
+    const nowMs = late.getTime();
+
+    const result = parseNextBedtime('22:00', nowMs);
+
+    // Should be tomorrow at 10pm
+    const expected = new Date(nowMs);
+    expected.setHours(22, 0, 0, 0);
+    const tomorrowExpected = expected.getTime() + 24 * 60 * 60 * 1000;
+    expect(result).toBe(tomorrowExpected);
+  });
+
+  it('"00:00" when now is afternoon returns tonight midnight (next day 00:00)', () => {
+    const afternoon = new Date(BASE_TIME);
+    afternoon.setHours(14, 0, 0, 0);
+    const nowMs = afternoon.getTime();
+
+    const result = parseNextBedtime('00:00', nowMs);
+
+    // Midnight "00:00" same day would be in the past (midnight was 14 hours ago)
+    // So it should roll to tomorrow's midnight
+    const midnight = new Date(nowMs);
+    midnight.setHours(0, 0, 0, 0);
+    const tomorrowMidnight = midnight.getTime() + 24 * 60 * 60 * 1000;
+    expect(result).toBe(tomorrowMidnight);
+  });
+
+  it('always returns a time in the future', () => {
+    const now = BASE_TIME;
+    const result = parseNextBedtime('12:00', now);
+    expect(result).toBeGreaterThan(now);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCaffeineCurfew
+// ---------------------------------------------------------------------------
+describe('getCaffeineCurfew', () => {
+  it('empty drinks array with bedtime 10 hours away returns a valid curfew time', () => {
+    const now = BASE_TIME;
+    const bedtime = now + 10 * 3_600_000; // 10 hours from now
+
+    const result = getCaffeineCurfew([], bedtime, now, 5, 50);
+
+    expect(result).not.toBeNull();
+    expect(result!).toBeGreaterThanOrEqual(now);
+    expect(result!).toBeLessThanOrEqual(bedtime);
+  });
+
+  it('massive existing caffeine returns null (budget exhausted)', () => {
+    const now = BASE_TIME + 3_600_000; // 1 hour after the drink
+    const bedtime = now + 10 * 3_600_000;
+    const hugeDrink = makeDrink({ caffeineMg: 10_000, timestamp: BASE_TIME });
+
+    const result = getCaffeineCurfew([hugeDrink], bedtime, now, 5, 50);
+
+    expect(result).toBeNull();
+  });
+
+  it('at the returned curfew time, a 95mg drink contribution + existing at bedtime <= threshold', () => {
+    const drink = makeDrink({ caffeineMg: 95, timestamp: BASE_TIME });
+    const now = BASE_TIME + 2 * 3_600_000; // 2 hours later
+    const bedtime = now + 10 * 3_600_000;
+
+    const curfew = getCaffeineCurfew([drink], bedtime, now, 5, 50);
+
+    expect(curfew).not.toBeNull();
+
+    // Verify: existing + new drink at curfew time should be <= threshold at bedtime
+    const existingAtBedtime = getCaffeineLevel([drink], bedtime, 5);
+    const fakeDrink = makeDrink({
+      id: 'verify',
+      caffeineMg: 95,
+      timestamp: curfew!,
+    });
+    const newContribution = singleDrinkLevel(fakeDrink, bedtime, 5);
+    expect(existingAtBedtime + newContribution).toBeLessThanOrEqual(50 + 0.1); // small epsilon for step granularity
+  });
+
+  it('bedtime very soon (5 minutes from now) with moderate existing caffeine returns null', () => {
+    const drink = makeDrink({ caffeineMg: 200, timestamp: BASE_TIME });
+    const now = BASE_TIME + 3_600_000; // 1 hour later, caffeine is high
+    const bedtime = now + 5 * 60_000; // 5 minutes from now
+
+    const result = getCaffeineCurfew([drink], bedtime, now, 5, 50);
+
+    // With high caffeine and bedtime 5 min away, should be null
+    // (95mg drink won't decay enough in 5 minutes)
+    expect(result).toBeNull();
+  });
+
+  it('standard scenario: 95mg drink 2 hours ago, bedtime in 10 hours, threshold 50mg', () => {
+    const drink = makeDrink({ caffeineMg: 95, timestamp: BASE_TIME });
+    const now = BASE_TIME + 2 * 3_600_000;
+    const bedtime = now + 10 * 3_600_000;
+
+    const result = getCaffeineCurfew([drink], bedtime, now, 5, 50);
+
+    expect(result).not.toBeNull();
+    // Should be several hours from now (the existing drink is small, lots of budget)
+    expect(result!).toBeGreaterThan(now + 3_600_000); // at least 1 hour from now
+  });
+
+  it('returns null when curfew would be in the past (now > calculated curfew)', () => {
+    // If bedtime is close and existing caffeine is moderate, there may be no valid time from now
+    const drink = makeDrink({ caffeineMg: 300, timestamp: BASE_TIME });
+    const now = BASE_TIME + 3_600_000;
+    // Bedtime just 2 hours away with 300mg drink absorbed
+    const bedtime = now + 2 * 3_600_000;
+
+    const result = getCaffeineCurfew([drink], bedtime, now, 5, 50);
+
+    // With 300mg still highly active and bedtime in 2 hours,
+    // existing caffeine at bedtime should already be above 50mg
+    // So budget is 0 or negative -> null
+    expect(result).toBeNull();
   });
 });

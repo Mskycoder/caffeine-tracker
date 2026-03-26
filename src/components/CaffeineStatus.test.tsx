@@ -15,7 +15,7 @@ describe('CaffeineStatus', () => {
     // Reset store to defaults before each test
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
     });
   });
 
@@ -89,5 +89,50 @@ describe('CaffeineStatus', () => {
     expect(bigNumber.textContent).toContain('0');
 
     expect(screen.getByText("You're clear to sleep")).toBeInTheDocument();
+  });
+
+  it('shows curfew time when caffeine budget remains', () => {
+    // Small drink long ago -- plenty of budget left at bedtime
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-curfew-1',
+        name: 'Tea',
+        caffeineMg: 30,
+        timestamp: FIXED_NOW - 6 * 3_600_000, // 6 hours ago
+        presetId: 'tea',
+      }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+    });
+
+    render(<CaffeineStatus />);
+    expect(screen.getByText(/Last call for caffeine/)).toBeInTheDocument();
+  });
+
+  it('shows warning when caffeine exceeds bedtime target', () => {
+    // Huge dose recently -- no budget for additional caffeine
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-curfew-2',
+        name: 'Mega Coffee',
+        caffeineMg: 5000,
+        timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
+        presetId: null,
+      }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+    });
+
+    render(<CaffeineStatus />);
+    expect(screen.getByText('Caffeine already above bedtime target')).toBeInTheDocument();
+  });
+
+  it('shows curfew when no drinks logged', () => {
+    // No drinks -- full budget available, should show a curfew time
+    useCaffeineStore.setState({
+      drinks: [],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:00' },
+    });
+
+    render(<CaffeineStatus />);
+    expect(screen.getByText(/Last call for caffeine/)).toBeInTheDocument();
   });
 });

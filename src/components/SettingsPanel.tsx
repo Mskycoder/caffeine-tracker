@@ -1,0 +1,124 @@
+import { useState } from 'react';
+import { useCaffeineStore } from '../store/caffeine-store';
+
+/**
+ * Metabolism speed presets mapping user-friendly labels to half-life values (per D-02).
+ * Fast metabolizers clear caffeine in ~3hr half-life, average ~5hr, slow ~7hr.
+ */
+const METABOLISM_PRESETS = [
+  { label: 'Fast', halfLife: 3, description: '~3hr half-life' },
+  { label: 'Average', halfLife: 5, description: '~5hr half-life' },
+  { label: 'Slow', halfLife: 7, description: '~7hr half-life' },
+] as const;
+
+/**
+ * Collapsible settings panel for personalizing the caffeine model (per D-01).
+ *
+ * Collapsed by default to keep the main view clean. Expands to show:
+ * - Metabolism speed: segmented control (Fast / Average / Slow) mapping to halfLifeHours
+ * - Sleep threshold: number input (10-200mg) for the sleep-ready cutoff
+ * - Target bedtime: time picker for curfew calculation
+ *
+ * All changes immediately persist to Zustand store and reactively update
+ * the decay curve, sleep estimate, and curfew display throughout the app.
+ */
+export function SettingsPanel() {
+  const [isOpen, setIsOpen] = useState(false);
+  const settings = useCaffeineStore((s) => s.settings);
+  const updateSettings = useCaffeineStore((s) => s.updateSettings);
+
+  return (
+    <section className="rounded-xl bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <span className="text-sm font-medium text-gray-700">Settings</span>
+        <span
+          className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          &#9660;
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="px-4 pb-4 space-y-5">
+          {/* Metabolism Speed */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              Metabolism Speed
+            </p>
+            <div role="group" aria-label="Metabolism speed" className="flex">
+              {METABOLISM_PRESETS.map((preset, index) => {
+                const isActive = settings.halfLifeHours === preset.halfLife;
+                const roundedClass =
+                  index === 0
+                    ? 'rounded-l-lg'
+                    : index === METABOLISM_PRESETS.length - 1
+                      ? 'rounded-r-lg'
+                      : '';
+
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => updateSettings({ halfLifeHours: preset.halfLife })}
+                    className={`flex-1 py-2 px-1 text-center border ${roundedClass} ${
+                      isActive
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="block text-sm font-medium">{preset.label}</span>
+                    <span className={`block text-xs ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
+                      {preset.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sleep Threshold */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              Sleep Threshold
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={10}
+                max={200}
+                step={10}
+                value={settings.thresholdMg}
+                onChange={(e) => {
+                  const val = Math.min(200, Math.max(10, Number(e.target.value)));
+                  updateSettings({ thresholdMg: val });
+                }}
+                className="w-20 text-center border border-gray-300 rounded px-2 py-1 text-sm"
+              />
+              <span className="text-sm text-gray-500">mg</span>
+            </div>
+          </div>
+
+          {/* Target Bedtime */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              Target Bedtime
+              <input
+                type="time"
+                value={settings.targetBedtime ?? '00:00'}
+                onChange={(e) => updateSettings({ targetBedtime: e.target.value })}
+                className="block mt-1 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 font-normal normal-case tracking-normal"
+              />
+            </label>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}

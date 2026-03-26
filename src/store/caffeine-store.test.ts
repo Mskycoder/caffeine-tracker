@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-import { useCaffeineStore } from './caffeine-store';
+import { useCaffeineStore, type CaffeineState } from './caffeine-store';
 
 const DEFAULT_SETTINGS = {
   halfLifeHours: 5,
   thresholdMg: 50,
-  targetBedtime: null,
+  targetBedtime: '00:00',
 };
 
 beforeEach(() => {
@@ -27,7 +27,7 @@ describe('initial state', () => {
     const { settings } = useCaffeineStore.getState();
     expect(settings.halfLifeHours).toBe(5);
     expect(settings.thresholdMg).toBe(50);
-    expect(settings.targetBedtime).toBeNull();
+    expect(settings.targetBedtime).toBe('00:00');
   });
 });
 
@@ -142,7 +142,7 @@ describe('updateSettings', () => {
     expect(settings.halfLifeHours).toBe(6);
     // Other settings unchanged
     expect(settings.thresholdMg).toBe(50);
-    expect(settings.targetBedtime).toBeNull();
+    expect(settings.targetBedtime).toBe('00:00');
   });
 
   it('can update multiple settings at once', () => {
@@ -185,8 +185,45 @@ describe('persist config', () => {
     expect(options.name).toBe('caffeine-tracker-storage');
   });
 
-  it('version is 1', () => {
+  it('version is 2', () => {
     const options = useCaffeineStore.persist.getOptions();
-    expect(options.version).toBe(1);
+    expect(options.version).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Migration
+// ---------------------------------------------------------------------------
+describe('migration', () => {
+  it('migrates v1 state: null targetBedtime becomes "00:00"', () => {
+    const v1State = {
+      drinks: [{ id: 'old-1', name: 'Coffee', caffeineMg: 95, timestamp: 1000, presetId: null }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const migrated = options.migrate!(v1State, 1) as CaffeineState;
+    expect(migrated.settings.targetBedtime).toBe('00:00');
+    expect(migrated.drinks).toHaveLength(1);
+    expect(migrated.settings.halfLifeHours).toBe(5);
+  });
+
+  it('preserves existing string targetBedtime during v1 migration', () => {
+    const v1State = {
+      drinks: [],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:30' },
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const migrated = options.migrate!(v1State, 1) as CaffeineState;
+    expect(migrated.settings.targetBedtime).toBe('22:30');
+  });
+
+  it('returns state unchanged for current version', () => {
+    const currentState = {
+      drinks: [],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(currentState, 2) as CaffeineState;
+    expect(result.settings.targetBedtime).toBe('00:00');
   });
 });

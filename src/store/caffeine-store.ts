@@ -9,7 +9,7 @@ import type { DrinkEntry, Settings } from '../engine/types';
  * Actions: CRUD for drinks, partial update for settings.
  *
  * Persisted to localStorage via Zustand persist middleware (TECH-01).
- * Schema version 1 with migrate placeholder for future migrations.
+ * Schema version 2. Migration from v1: targetBedtime null -> '00:00'.
  */
 interface CaffeineState {
   drinks: DrinkEntry[];
@@ -28,7 +28,7 @@ export const useCaffeineStore = create<CaffeineState>()(
       settings: {
         halfLifeHours: 5,
         thresholdMg: 50,
-        targetBedtime: null,
+        targetBedtime: '00:00',
       },
 
       addDrink: (drink) =>
@@ -57,11 +57,19 @@ export const useCaffeineStore = create<CaffeineState>()(
     }),
     {
       name: 'caffeine-tracker-storage',
-      version: 1,
-      migrate: (persistedState: unknown, _version: number) => {
-        // Future migrations go here
-        // if (version === 0) { ... migrate from v0 to v1 ... }
-        return persistedState as CaffeineState;
+      version: 2,
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as CaffeineState;
+        if (version === 1) {
+          return {
+            ...state,
+            settings: {
+              ...state.settings,
+              targetBedtime: state.settings.targetBedtime ?? '00:00',
+            },
+          };
+        }
+        return state;
       },
     },
   ),
