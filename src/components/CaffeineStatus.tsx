@@ -1,13 +1,16 @@
 import { format } from 'date-fns';
 import { useCaffeineStore } from '../store/caffeine-store';
-import { getCaffeineLevel, getSleepReadyTime, getCaffeineCurfew, parseNextBedtime } from '../engine/caffeine';
+import { getCaffeineLevel, getSleepReadyTime, getCaffeineCurfew, parseNextBedtime, getDailyTotal } from '../engine/caffeine';
+import { dailyTotalColor } from '../data/colors';
+import { FDA_DAILY_LIMIT_MG } from '../engine/constants';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 /**
- * Hero status display showing the three most important values:
+ * Hero status display showing the four most important values:
  * 1. Current estimated caffeine level (mg) -- large bold number
  * 2. Sleep-ready time estimate -- "Safe to sleep by X:XX AM/PM" or "You're clear to sleep"
  * 3. Caffeine curfew -- "Last call for caffeine: X:XX AM/PM" or warning if budget exceeded
+ * 4. Daily caffeine total -- "Today: Xmg / 400mg" with green-to-red color gradient
  *
  * Curfew is always visible since default bedtime is "00:00" (per D-04).
  * Refreshes automatically every 30 seconds via useCurrentTime hook.
@@ -29,6 +32,8 @@ export function CaffeineStatus() {
   const curfewTime = getCaffeineCurfew(
     drinks, targetBedtimeMs, now, settings.halfLifeHours, settings.thresholdMg
   );
+
+  const dailyTotal = getDailyTotal(drinks, now);
 
   return (
     <section className="rounded-xl bg-white p-6 shadow-sm text-center">
@@ -56,6 +61,12 @@ export function CaffeineStatus() {
             </span>
           </p>
         )}
+      </div>
+      <div className="mt-3 pt-3 border-t border-gray-100 text-sm">
+        <p style={{ color: dailyTotalColor(dailyTotal, FDA_DAILY_LIMIT_MG) }} className="font-semibold">
+          Today: {Math.round(dailyTotal)}mg{' '}
+          <span className="font-normal text-gray-400">/ {FDA_DAILY_LIMIT_MG}mg</span>
+        </p>
       </div>
     </section>
   );

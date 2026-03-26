@@ -1,10 +1,12 @@
+import { startOfDay } from 'date-fns';
 import {
   DEFAULT_KA,
   BIOAVAILABILITY,
   MAX_PROJECTION_HOURS,
   PROJECTION_STEP_MS,
+  NEGLIGIBLE_MG,
 } from './constants';
-import type { DrinkEntry, CurvePoint } from './types';
+import type { DrinkEntry, CurvePoint, DrinkCurvePoint } from './types';
 
 /**
  * Parse "HH:mm" bedtime string into the next occurrence as epoch ms.
@@ -207,4 +209,54 @@ export function getDrinkContributions(
   }
 
   return contributions;
+}
+
+/**
+ * Generate stacked curve data for per-drink chart layers.
+ * Returns DrinkCurvePoint[] where each point has a `total` and per-drink
+ * keys (keyed by drink.id) with individual caffeine contributions.
+ *
+ * Drink keys are omitted when:
+ * - The point time is before the drink's timestamp (not yet consumed)
+ * - The contribution is below NEGLIGIBLE_MG threshold
+ *
+ * Suitable for Recharts stacked AreaChart visualization.
+ */
+export function generateStackedCurveData(
+  drinks: DrinkEntry[],
+  startTime: number,
+  endTime: number,
+  stepMs: number,
+  halfLifeHours: number,
+  ka: number = DEFAULT_KA,
+): DrinkCurvePoint[] {
+  const points: DrinkCurvePoint[] = [];
+
+  for (let t = startTime; t <= endTime; t += stepMs) {
+    const point: DrinkCurvePoint = { time: t, total: 0 };
+    for (const drink of drinks) {
+      const level = singleDrinkLevel(drink, t, halfLifeHours, ka);
+      if (level > NEGLIGIBLE_MG) {
+        point[drink.id] = level;
+        point.total += level;
+      }
+    }
+    points.push(point);
+  }
+
+  return points;
+}
+
+/**
+ * Sum of caffeineMg for drinks logged today (calendar day).
+ * Uses date-fns startOfDay for consistent "today" boundary,
+ * matching the same pattern used by DrinkHistory.
+ *
+ * Pure function: `now` is passed as argument, no Date.now() calls.
+ */
+export function getDailyTotal(drinks: DrinkEntry[], now: number): number {
+  const todayStart = startOfDay(new Date(now)).getTime();
+  return drinks
+    .filter((d) => d.timestamp >= todayStart)
+    .reduce((sum, d) => sum + d.caffeineMg, 0);
 }

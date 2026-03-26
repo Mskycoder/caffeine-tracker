@@ -1,22 +1,71 @@
+import { useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
   ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 import { format } from 'date-fns';
 import { useCaffeineStore } from '../store/caffeine-store';
-import { generateCurveData } from '../engine/caffeine';
+import { generateStackedCurveData } from '../engine/caffeine';
 import { PROJECTION_STEP_MS } from '../engine/constants';
+import { getDrinkColor } from '../data/colors';
 import { useCurrentTime } from '../hooks/useCurrentTime';
+import type { DrinkEntry } from '../engine/types';
+
+/**
+ * Custom tooltip for stacked per-drink area chart.
+ * Shows per-drink name, color swatch, mg value, and a total line
+ * when multiple drinks are present. Serves as tooltip-only legend (D-06).
+ */
+interface StackedTooltipProps {
+  active?: boolean;
+  payload?: Array<{ dataKey?: string; value?: number; color?: string }>;
+  label?: string | number;
+  drinks: DrinkEntry[];
+}
+
+function StackedTooltip({ active, payload, label, drinks }: StackedTooltipProps) {
+  if (!active || !payload?.length) return null;
+
+  const time = format(new Date(Number(label)), 'h:mm a');
+  const entries = payload
+    .filter((p) => (p.value ?? 0) > 0.5)
+    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+  const total = entries.reduce((sum, p) => sum + (p.value ?? 0), 0);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 text-sm">
+      <p className="font-medium text-gray-700 mb-1">{time}</p>
+      {entries.map((entry) => {
+        const drink = drinks.find((d) => d.id === entry.dataKey);
+        return (
+          <div key={entry.dataKey} className="flex items-center gap-2">
+            <span
+              className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-gray-600">{drink?.name ?? 'Unknown'}</span>
+            <span className="ml-auto font-medium">{Math.round(entry.value ?? 0)} mg</span>
+          </div>
+        );
+      })}
+      {entries.length > 1 && (
+        <div className="border-t border-gray-100 mt-1 pt-1 font-semibold text-gray-900">
+          Total: {Math.round(total)} mg
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Caffeine decay curve chart showing caffeine level over a 48-hour window.
  *
  * Features:
- * - Filled area chart with indigo gradient (D-01)
+ * - Stacked per-drink colored area chart (VIZ-05 / D-01)
  * - 48h window: ~24h past + ~24h future centered on now (D-02)
  * - Vertical dashed "Now" line separating past from projected (D-03)
  * - Horizontal dashed sleep threshold line at configured mg (D-04 / VIZ-03)
- * - Tooltip showing time and caffeine value on hover (D-05)
+ * - Custom tooltip showing per-drink breakdown on hover (D-06)
  *
  * Data is recomputed every 30 seconds via useCurrentTime hook.
  * Parent div has explicit h-[300px] height (Recharts Pitfall 1).
@@ -32,9 +81,33 @@ export function DecayCurveChart() {
   const startTime = now - windowMs;
   const endTime = now + windowMs;
 
-  const curveData = generateCurveData(
+  const stackedData = generateStackedCurveData(
     drinks, startTime, endTime, PROJECTION_STEP_MS, settings.halfLifeHours
   );
+
+  // Extract active drink IDs sorted chronologically (earliest at bottom of stack)
+  const activeDrinkIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const point of stackedData) {
+      for (const key of Object.keys(point)) {
+        if (key !== 'time' && key !== 'total') ids.add(key);
+      }
+    }
+    return Array.from(ids).sort((a, b) => {
+      const drinkA = drinks.find((d) => d.id === a);
+      const drinkB = drinks.find((d) => d.id === b);
+      return (drinkA?.timestamp ?? 0) - (drinkB?.timestamp ?? 0);
+    });
+  }, [stackedData, drinks]);
+
+  // Build color map for each drink using preset color or hash fallback
+  const colorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const drink of drinks) {
+      map[drink.id] = getDrinkColor(drink.presetId, drink.name);
+    }
+    return map;
+  }, [drinks]);
 
   return (
     <section className="rounded-xl bg-white p-4 shadow-sm">
@@ -43,13 +116,7 @@ export function DecayCurveChart() {
       </h2>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={curveData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="caffeineFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
+          <AreaChart data={stackedData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="time"
@@ -63,10 +130,7 @@ export function DecayCurveChart() {
               tick={{ fontSize: 12 }}
               width={40}
             />
-            <Tooltip
-              labelFormatter={(epoch) => format(new Date(Number(epoch)), 'h:mm a')}
-              formatter={(value) => [`${Math.round(Number(value))} mg`, 'Caffeine']}
-            />
+            <Tooltip content={<StackedTooltip drinks={drinks} />} />
             {/* VIZ-03: Sleep threshold reference line */}
             <ReferenceLine
               y={settings.thresholdMg}
@@ -81,14 +145,18 @@ export function DecayCurveChart() {
               strokeDasharray="4 4"
               label={{ value: 'Now', position: 'top', fill: '#94a3b8', fontSize: 12 }}
             />
-            {/* D-01: Filled area chart */}
-            <Area
-              type="monotone"
-              dataKey="mg"
-              stroke="#6366f1"
-              fill="url(#caffeineFill)"
-              fillOpacity={1}
-            />
+            {/* VIZ-05: Stacked per-drink colored areas */}
+            {activeDrinkIds.map((drinkId) => (
+              <Area
+                key={drinkId}
+                type="monotone"
+                dataKey={drinkId}
+                stackId="caffeine"
+                stroke={colorMap[drinkId] ?? '#94a3b8'}
+                fill={colorMap[drinkId] ?? '#94a3b8'}
+                fillOpacity={0.6}
+              />
+            ))}
           </AreaChart>
         </ResponsiveContainer>
       </div>

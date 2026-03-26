@@ -13,3 +13,6 @@ export const PROJECTION_STEP_MS = 5 * 60_000;
 
 /** Minimum caffeine contribution (mg) to consider from a single drink. */
 export const NEGLIGIBLE_MG = 0.01;
+
+/** FDA recommended daily caffeine limit (mg). */
+export const FDA_DAILY_LIMIT_MG = 400;

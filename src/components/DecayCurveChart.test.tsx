@@ -44,8 +44,8 @@ describe('DecayCurveChart', () => {
     expect(screen.getByText('Caffeine Level')).toBeInTheDocument();
   });
 
-  it('calls generateCurveData with correct 48h window', () => {
-    const spy = vi.spyOn(caffeineEngine, 'generateCurveData');
+  it('calls generateStackedCurveData with correct 48h window', () => {
+    const spy = vi.spyOn(caffeineEngine, 'generateStackedCurveData');
 
     render(<DecayCurveChart />);
 
@@ -63,7 +63,7 @@ describe('DecayCurveChart', () => {
     spy.mockRestore();
   });
 
-  it('passes store drinks to generateCurveData', () => {
+  it('passes store drinks to generateStackedCurveData', () => {
     const testDrinks = [{
       id: 'test-1',
       name: 'Espresso',
@@ -74,7 +74,7 @@ describe('DecayCurveChart', () => {
 
     useCaffeineStore.setState({ drinks: testDrinks });
 
-    const spy = vi.spyOn(caffeineEngine, 'generateCurveData');
+    const spy = vi.spyOn(caffeineEngine, 'generateStackedCurveData');
 
     render(<DecayCurveChart />);
 

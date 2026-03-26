@@ -135,4 +135,47 @@ describe('CaffeineStatus', () => {
     render(<CaffeineStatus />);
     expect(screen.getByText(/Last call for caffeine/)).toBeInTheDocument();
   });
+
+  it('shows daily total with FDA limit', () => {
+    // 200mg drink logged 1 hour ago (today)
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-daily-1',
+        name: 'Cold Brew',
+        caffeineMg: 200,
+        timestamp: FIXED_NOW - 3_600_000,
+        presetId: 'cold-brew',
+      }],
+    });
+
+    render(<CaffeineStatus />);
+    expect(screen.getByText(/Today:/)).toBeInTheDocument();
+    expect(screen.getByText(/200mg/)).toBeInTheDocument();
+    expect(screen.getByText(/400mg/)).toBeInTheDocument();
+  });
+
+  it('shows 0mg daily total when no drinks logged', () => {
+    render(<CaffeineStatus />);
+    const todayEl = screen.getByText(/Today:/);
+    expect(todayEl).toBeInTheDocument();
+    // The containing <p> should show "Today: 0mg / 400mg"
+    expect(todayEl.textContent).toMatch(/Today:\s*0mg/);
+  });
+
+  it('daily total text has inline color style', () => {
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-daily-2',
+        name: 'Drip Coffee',
+        caffeineMg: 95,
+        timestamp: FIXED_NOW - 3_600_000,
+        presetId: 'drip-coffee',
+      }],
+    });
+
+    render(<CaffeineStatus />);
+    const todayEl = screen.getByText(/Today:/).closest('p')!;
+    // dailyTotalColor returns an hsl() string -- verify inline style is applied
+    expect(todayEl.getAttribute('style')).toMatch(/color:\s*hsl\(/);
+  });
 });
