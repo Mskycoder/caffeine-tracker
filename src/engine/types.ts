@@ -20,6 +20,19 @@ export interface CurvePoint {
   mg: number;     // total caffeine at this time
 }
 
+/**
+ * Discriminated result from getCaffeineCurfew.
+ *
+ * - "ok": A valid curfew time was found (epoch ms).
+ * - "budget_exceeded": Existing drinks already push bedtime caffeine above threshold.
+ * - "too_soon": Bedtime is too close for even a right-now standard dose to decay
+ *   below the remaining budget. Current caffeine may be well below threshold.
+ */
+export type CurfewResult =
+  | { status: 'ok'; time: number }
+  | { status: 'budget_exceeded' }
+  | { status: 'too_soon' };
+
 /** Per-drink contribution point for stacked visualization (Phase 6). */
 export interface DrinkCurvePoint {
   time: number;

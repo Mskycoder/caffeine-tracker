@@ -29,7 +29,7 @@ export function CaffeineStatus() {
   // Compute curfew (per D-03, D-04: always show, default bedtime is '00:00')
   const bedtimeStr = settings.targetBedtime ?? '00:00';
   const targetBedtimeMs = parseNextBedtime(bedtimeStr, now);
-  const curfewTime = getCaffeineCurfew(
+  const curfewResult = getCaffeineCurfew(
     drinks, targetBedtimeMs, now, settings.halfLifeHours, settings.thresholdMg
   );
 
@@ -51,13 +51,15 @@ export function CaffeineStatus() {
         )}
       </div>
       <div className="mt-2 text-sm text-gray-500">
-        {curfewTime === null ? (
+        {curfewResult.status === 'budget_exceeded' ? (
           <p className="text-amber-600">Caffeine already above bedtime target</p>
+        ) : curfewResult.status === 'too_soon' ? (
+          <p className="text-gray-400">Curfew has passed for tonight</p>
         ) : (
           <p>
             Last call for caffeine:{' '}
             <span className="font-semibold text-gray-700">
-              {format(new Date(curfewTime), 'h:mm a')}
+              {format(new Date(curfewResult.time), 'h:mm a')}
             </span>
           </p>
         )}

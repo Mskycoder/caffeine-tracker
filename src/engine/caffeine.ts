@@ -6,7 +6,7 @@ import {
   PROJECTION_STEP_MS,
   NEGLIGIBLE_MG,
 } from './constants';
-import type { DrinkEntry, CurvePoint, DrinkCurvePoint } from './types';
+import type { DrinkEntry, CurvePoint, DrinkCurvePoint, CurfewResult } from './types';
 
 /**
  * Parse "HH:mm" bedtime string into the next occurrence as epoch ms.
@@ -36,9 +36,10 @@ export function parseNextBedtime(bedtimeStr: string, now: number): number {
  * contribution increases monotonically -- so we stop at the first time that exceeds
  * the budget and return the previous step.
  *
- * Returns epoch ms of the curfew time, or null if:
- *   - Existing drinks already push bedtime caffeine above threshold (budget <= 0)
- *   - Even drinking right now would exceed the budget (no valid time)
+ * Returns a CurfewResult discriminated union:
+ *   - { status: 'ok', time: number } — valid curfew epoch ms
+ *   - { status: 'budget_exceeded' } — existing drinks push bedtime caffeine above threshold
+ *   - { status: 'too_soon' } — bedtime is too close for even a right-now dose to fit
  *
  * Pure function: no Date.now() calls -- all times passed as arguments (per D-05).
  */
@@ -50,14 +51,14 @@ export function getCaffeineCurfew(
   thresholdMg: number,
   standardDoseMg: number = 95,
   ka: number = DEFAULT_KA,
-): number | null {
+): CurfewResult {
   // Current caffeine contribution at bedtime from existing drinks
   const existingAtBedtime = getCaffeineLevel(drinks, targetBedtimeMs, halfLifeHours, ka);
 
   // Budget remaining before exceeding threshold
   const budget = thresholdMg - existingAtBedtime;
 
-  if (budget <= 0) return null; // Already over threshold at bedtime
+  if (budget <= 0) return { status: 'budget_exceeded' };
 
   // Forward-scan from now to bedtime in 5-minute steps
   let curfew: number | null = null;
@@ -77,7 +78,9 @@ export function getCaffeineCurfew(
     }
   }
 
-  return curfew;
+  if (curfew === null) return { status: 'too_soon' };
+
+  return { status: 'ok', time: curfew };
 }
 
 /**
