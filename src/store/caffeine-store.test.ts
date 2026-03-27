@@ -19,6 +19,7 @@ beforeEach(() => {
     drinks: [],
     settings: { ...DEFAULT_SETTINGS },
     customPresets: [],
+    schedules: [],
   });
 });
 
@@ -200,9 +201,9 @@ describe('persist config', () => {
     expect(options.name).toBe('caffeine-tracker-storage');
   });
 
-  it('version is 4', () => {
+  it('version is 5', () => {
     const options = useCaffeineStore.persist.getOptions();
-    expect(options.version).toBe(4);
+    expect(options.version).toBe(5);
   });
 });
 
@@ -245,7 +246,7 @@ describe('migration', () => {
     expect(migrated.settings.targetBedtime).toBe('23:00');
   });
 
-  it('migrates v1 state to v4 (chained): targetBedtime, customPresets, metabolismMode, covariates', () => {
+  it('migrates v1 state to v5 (chained): targetBedtime, customPresets, metabolismMode, covariates, schedules', () => {
     const v1State = {
       drinks: [{ id: 'old-1', name: 'Tea', caffeineMg: 47, timestamp: 2000, presetId: null }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
@@ -256,6 +257,7 @@ describe('migration', () => {
     expect(migrated.customPresets).toEqual([]);
     expect(migrated.settings.metabolismMode).toBe('simple');
     expect(migrated.settings.covariates).toEqual(DEFAULT_SETTINGS.covariates);
+    expect(migrated.schedules).toEqual([]);
     expect(migrated.drinks).toHaveLength(1);
   });
 
@@ -279,7 +281,7 @@ describe('migration', () => {
     expect(migrated.customPresets).toHaveLength(1);
   });
 
-  it('returns v4 state unchanged', () => {
+  it('migrates v4 state to v5: adds empty schedules array', () => {
     const v4State = {
       drinks: [],
       settings: { ...DEFAULT_SETTINGS },
@@ -287,10 +289,24 @@ describe('migration', () => {
     };
     const options = useCaffeineStore.persist.getOptions();
     const result = options.migrate!(v4State, 4) as CaffeineState;
+    expect(result.schedules).toEqual([]);
     expect(result.settings.targetBedtime).toBe('00:00');
     expect(result.settings.metabolismMode).toBe('simple');
     expect(result.customPresets).toHaveLength(1);
     expect(result.customPresets[0].name).toBe('My Drink');
+  });
+
+  it('returns v5 state unchanged', () => {
+    const v5State = {
+      drinks: [],
+      settings: { ...DEFAULT_SETTINGS },
+      customPresets: [],
+      schedules: [{ id: 'sched-1', presetId: 'drip-coffee', name: 'Drip Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1, 2, 3, 4, 5], paused: false, lastRunDate: null }],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v5State, 5) as CaffeineState;
+    expect(result.schedules).toHaveLength(1);
+    expect(result.schedules[0].name).toBe('Drip Coffee');
   });
 });
 
@@ -371,5 +387,173 @@ describe('removeCustomPreset', () => {
     const { customPresets } = useCaffeineStore.getState();
     expect(customPresets).toHaveLength(1);
     expect(customPresets[0].name).toBe('Stays');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// addSchedule
+// ---------------------------------------------------------------------------
+describe('addSchedule', () => {
+  it('creates schedule with auto-generated UUID id, paused=false, lastRunDate=null', () => {
+    useCaffeineStore.getState().addSchedule({
+      presetId: 'drip-coffee',
+      name: 'Drip Coffee',
+      caffeineMg: 95,
+      timeOfDay: '09:00',
+      repeatDays: [1, 2, 3, 4, 5],
+    });
+    const { schedules } = useCaffeineStore.getState();
+    expect(schedules).toHaveLength(1);
+    expect(schedules[0].id).toMatch(/^[0-9a-f]{8}-/);
+    expect(schedules[0].name).toBe('Drip Coffee');
+    expect(schedules[0].caffeineMg).toBe(95);
+    expect(schedules[0].paused).toBe(false);
+    expect(schedules[0].lastRunDate).toBeNull();
+  });
+
+  it('appends to existing schedules', () => {
+    const state = useCaffeineStore.getState();
+    state.addSchedule({ presetId: 'drip-coffee', name: 'Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1] });
+    useCaffeineStore.getState().addSchedule({ presetId: 'espresso', name: 'Espresso', caffeineMg: 63, timeOfDay: '14:00', repeatDays: [5] });
+    const { schedules } = useCaffeineStore.getState();
+    expect(schedules).toHaveLength(2);
+    expect(schedules[0].name).toBe('Coffee');
+    expect(schedules[1].name).toBe('Espresso');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateSchedule
+// ---------------------------------------------------------------------------
+describe('updateSchedule', () => {
+  it('updates matching schedule fields', () => {
+    useCaffeineStore.getState().addSchedule({ presetId: 'drip-coffee', name: 'Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1, 2, 3, 4, 5] });
+    const id = useCaffeineStore.getState().schedules[0].id;
+    useCaffeineStore.getState().updateSchedule(id, { timeOfDay: '08:00', caffeineMg: 150 });
+    const schedule = useCaffeineStore.getState().schedules[0];
+    expect(schedule.timeOfDay).toBe('08:00');
+    expect(schedule.caffeineMg).toBe(150);
+    expect(schedule.name).toBe('Coffee'); // unchanged
+  });
+
+  it('leaves other schedules untouched', () => {
+    const state = useCaffeineStore.getState();
+    state.addSchedule({ presetId: 'a', name: 'A', caffeineMg: 50, timeOfDay: '08:00', repeatDays: [1] });
+    useCaffeineStore.getState().addSchedule({ presetId: 'b', name: 'B', caffeineMg: 100, timeOfDay: '10:00', repeatDays: [2] });
+    const id = useCaffeineStore.getState().schedules[1].id;
+    useCaffeineStore.getState().updateSchedule(id, { name: 'Updated B' });
+    const schedules = useCaffeineStore.getState().schedules;
+    expect(schedules[0].name).toBe('A');
+    expect(schedules[1].name).toBe('Updated B');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// removeSchedule
+// ---------------------------------------------------------------------------
+describe('removeSchedule', () => {
+  it('removes matching schedule, keeps others', () => {
+    const state = useCaffeineStore.getState();
+    state.addSchedule({ presetId: 'a', name: 'Keep', caffeineMg: 50, timeOfDay: '08:00', repeatDays: [1] });
+    useCaffeineStore.getState().addSchedule({ presetId: 'b', name: 'Remove', caffeineMg: 100, timeOfDay: '10:00', repeatDays: [2] });
+    const removeId = useCaffeineStore.getState().schedules[1].id;
+    useCaffeineStore.getState().removeSchedule(removeId);
+    const { schedules } = useCaffeineStore.getState();
+    expect(schedules).toHaveLength(1);
+    expect(schedules[0].name).toBe('Keep');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toggleSchedulePause
+// ---------------------------------------------------------------------------
+describe('toggleSchedulePause', () => {
+  it('flips paused from false to true', () => {
+    useCaffeineStore.getState().addSchedule({ presetId: 'a', name: 'Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1] });
+    const id = useCaffeineStore.getState().schedules[0].id;
+    expect(useCaffeineStore.getState().schedules[0].paused).toBe(false);
+    useCaffeineStore.getState().toggleSchedulePause(id);
+    expect(useCaffeineStore.getState().schedules[0].paused).toBe(true);
+  });
+
+  it('flips paused from true to false', () => {
+    useCaffeineStore.getState().addSchedule({ presetId: 'a', name: 'Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1] });
+    const id = useCaffeineStore.getState().schedules[0].id;
+    useCaffeineStore.getState().toggleSchedulePause(id); // false -> true
+    useCaffeineStore.getState().toggleSchedulePause(id); // true -> false
+    expect(useCaffeineStore.getState().schedules[0].paused).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// runCatchUp
+// ---------------------------------------------------------------------------
+describe('runCatchUp', () => {
+  // Friday, March 27, 2026 at 10:00 AM local time
+  const FRIDAY_10AM = new Date('2026-03-27T10:00:00').getTime();
+
+  it('adds drinks and updates lastRunDate for matching schedules', () => {
+    useCaffeineStore.getState().addSchedule({
+      presetId: 'drip-coffee',
+      name: 'Drip Coffee',
+      caffeineMg: 95,
+      timeOfDay: '09:00',
+      repeatDays: [5], // Friday
+    });
+    useCaffeineStore.getState().runCatchUp(FRIDAY_10AM);
+    const state = useCaffeineStore.getState();
+    expect(state.drinks).toHaveLength(1);
+    expect(state.drinks[0].name).toBe('Drip Coffee');
+    expect(state.drinks[0].caffeineMg).toBe(95);
+    expect(state.schedules[0].lastRunDate).toBe('2026-03-27');
+  });
+
+  it('returns count of drinks logged', () => {
+    useCaffeineStore.getState().addSchedule({
+      presetId: 'a',
+      name: 'Coffee 1',
+      caffeineMg: 95,
+      timeOfDay: '07:00',
+      repeatDays: [5],
+    });
+    useCaffeineStore.getState().addSchedule({
+      presetId: 'b',
+      name: 'Coffee 2',
+      caffeineMg: 63,
+      timeOfDay: '09:30',
+      repeatDays: [5],
+    });
+    const count = useCaffeineStore.getState().runCatchUp(FRIDAY_10AM);
+    expect(count).toBe(2);
+  });
+
+  it('returns 0 when no schedules match', () => {
+    useCaffeineStore.getState().addSchedule({
+      presetId: 'a',
+      name: 'Monday Coffee',
+      caffeineMg: 95,
+      timeOfDay: '09:00',
+      repeatDays: [1], // Monday only, but it's Friday
+    });
+    const count = useCaffeineStore.getState().runCatchUp(FRIDAY_10AM);
+    expect(count).toBe(0);
+    expect(useCaffeineStore.getState().drinks).toHaveLength(0);
+  });
+
+  it('is idempotent (running twice same day produces no additional drinks)', () => {
+    useCaffeineStore.getState().addSchedule({
+      presetId: 'drip-coffee',
+      name: 'Coffee',
+      caffeineMg: 95,
+      timeOfDay: '09:00',
+      repeatDays: [5],
+    });
+    const count1 = useCaffeineStore.getState().runCatchUp(FRIDAY_10AM);
+    expect(count1).toBe(1);
+    expect(useCaffeineStore.getState().drinks).toHaveLength(1);
+
+    const count2 = useCaffeineStore.getState().runCatchUp(FRIDAY_10AM);
+    expect(count2).toBe(0);
+    expect(useCaffeineStore.getState().drinks).toHaveLength(1); // still just 1
   });
 });

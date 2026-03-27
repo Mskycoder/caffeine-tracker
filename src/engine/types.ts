@@ -52,6 +52,18 @@ export interface CustomPreset {
   caffeineMg: number;   // caffeine content in mg (1-1000)
 }
 
+/** A recurring drink schedule for auto-logging (Phase 13). */
+export interface DrinkSchedule {
+  id: string;                  // crypto.randomUUID()
+  presetId: string;            // Links to DrinkPreset.presetId or CustomPreset.id
+  name: string;                // Drink name (denormalized -- survives preset deletion)
+  caffeineMg: number;          // Caffeine amount (denormalized -- survives preset deletion)
+  timeOfDay: string;           // HH:mm format (e.g., '09:30')
+  repeatDays: number[];        // JS getDay() indices: 0=Sun, 1=Mon, ..., 6=Sat
+  paused: boolean;             // When true, catch-up skips this schedule
+  lastRunDate: string | null;  // ISO date 'YYYY-MM-DD' of last successful catch-up
+}
+
 /**
  * Discriminated result from getCaffeineCurfew.
  *

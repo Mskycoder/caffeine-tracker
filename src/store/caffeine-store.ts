@@ -1,21 +1,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { DrinkEntry, Settings, CustomPreset } from '../engine/types';
+import type { DrinkEntry, Settings, CustomPreset, DrinkSchedule } from '../engine/types';
 import { DEFAULT_COVARIATES } from '../engine/types';
+import { getScheduledDrinksToLog, formatDateKey } from '../engine/schedule';
 
 /**
  * Caffeine store state shape.
  *
- * State: drinks array + settings object + customPresets array.
- * Actions: CRUD for drinks, CRUD for custom presets, partial update for settings.
+ * State: drinks array + settings object + customPresets array + schedules array.
+ * Actions: CRUD for drinks, CRUD for custom presets, CRUD for schedules, runCatchUp, partial update for settings.
  *
  * Persisted to localStorage via Zustand persist middleware (TECH-01).
- * Schema version 4. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates).
+ * Schema version 5. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates), v4->v5 (schedules).
  */
 interface CaffeineState {
   drinks: DrinkEntry[];
   settings: Settings;
   customPresets: CustomPreset[];
+  schedules: DrinkSchedule[];
   addDrink: (drink: Omit<DrinkEntry, 'id'>) => void;
   removeDrink: (id: string) => void;
   updateDrink: (id: string, updates: Partial<Omit<DrinkEntry, 'id'>>) => void;
@@ -24,11 +26,16 @@ interface CaffeineState {
   addCustomPreset: (name: string, caffeineMg: number) => void;
   updateCustomPreset: (id: string, updates: Partial<Pick<CustomPreset, 'name' | 'caffeineMg'>>) => void;
   removeCustomPreset: (id: string) => void;
+  addSchedule: (schedule: Omit<DrinkSchedule, 'id' | 'paused' | 'lastRunDate'>) => void;
+  updateSchedule: (id: string, updates: Partial<Omit<DrinkSchedule, 'id'>>) => void;
+  removeSchedule: (id: string) => void;
+  toggleSchedulePause: (id: string) => void;
+  runCatchUp: (currentTime: number) => number;
 }
 
 export const useCaffeineStore = create<CaffeineState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       drinks: [],
       settings: {
         halfLifeHours: 5,
@@ -38,6 +45,7 @@ export const useCaffeineStore = create<CaffeineState>()(
         covariates: { ...DEFAULT_COVARIATES },
       },
       customPresets: [],
+      schedules: [],
 
       addDrink: (drink) =>
         set((state) => ({
@@ -82,10 +90,59 @@ export const useCaffeineStore = create<CaffeineState>()(
         set((state) => ({
           customPresets: state.customPresets.filter((p) => p.id !== id),
         })),
+
+      addSchedule: (schedule) =>
+        set((state) => ({
+          schedules: [
+            ...state.schedules,
+            { ...schedule, id: crypto.randomUUID(), paused: false, lastRunDate: null },
+          ],
+        })),
+
+      updateSchedule: (id, updates) =>
+        set((state) => ({
+          schedules: state.schedules.map((s) =>
+            s.id === id ? { ...s, ...updates } : s,
+          ),
+        })),
+
+      removeSchedule: (id) =>
+        set((state) => ({
+          schedules: state.schedules.filter((s) => s.id !== id),
+        })),
+
+      toggleSchedulePause: (id) =>
+        set((state) => ({
+          schedules: state.schedules.map((s) =>
+            s.id === id ? { ...s, paused: !s.paused } : s,
+          ),
+        })),
+
+      runCatchUp: (currentTime) => {
+        const state = get();
+        const { drinks, processedScheduleIds } = getScheduledDrinksToLog(
+          state.schedules,
+          currentTime,
+        );
+        if (drinks.length === 0) return 0;
+        const todayStr = formatDateKey(new Date(currentTime));
+        set((state) => ({
+          drinks: [
+            ...state.drinks,
+            ...drinks.map((d) => ({ ...d, id: crypto.randomUUID() })),
+          ],
+          schedules: state.schedules.map((s) =>
+            processedScheduleIds.includes(s.id)
+              ? { ...s, lastRunDate: todayStr }
+              : s,
+          ),
+        }));
+        return drinks.length;
+      },
     }),
     {
       name: 'caffeine-tracker-storage',
-      version: 4,
+      version: 5,
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>;
         if (version < 2) {
@@ -118,6 +175,10 @@ export const useCaffeineStore = create<CaffeineState>()(
               cyp1a2Inhibitor: 'none',
             },
           };
+        }
+        if (version < 5) {
+          // v4 -> v5: add schedules array (Phase 13)
+          state.schedules = (state as Record<string, unknown>).schedules ?? [];
         }
         return state as unknown as CaffeineState;
       },

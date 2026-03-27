@@ -5,6 +5,7 @@ interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
+  title?: string;
 }
 
 /**
@@ -22,7 +23,7 @@ interface BottomSheetProps {
  * Body scroll is locked while open. DrinkLogger content unmounts when closed
  * (BottomSheet returns null), resetting timeOverride state.
  */
-export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, children, title = 'Log a Drink' }: BottomSheetProps) {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startY = useRef(0);
@@ -98,7 +99,7 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
         style={{ transform: `translateY(${dragY}px)` }}
         role="dialog"
         aria-modal="true"
-        aria-label="Log a Drink"
+        aria-label={title}
       >
         {/* Drag handle (mobile only) */}
         <div
@@ -112,7 +113,7 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-2 md:pt-4">
-          <h2 className="text-lg font-semibold text-gray-800">Log a Drink</h2>
+          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
           <button
             type="button"
             onClick={onClose}
