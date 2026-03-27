@@ -8,9 +8,16 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
 /**
  * Hero status display showing the four most important values:
  * 1. Current estimated caffeine level (mg) -- large bold number
- * 2. Sleep-ready time estimate -- "Safe to sleep by X:XX AM/PM" or "You're clear to sleep"
- * 3. Caffeine curfew -- "Last call for caffeine: X:XX AM/PM" or warning if budget exceeded
+ * 2. Sleep-ready time estimate -- contextualized against bedtime:
+ *    - "You're clear to sleep" when already below threshold
+ *    - "On track for your X:XX AM bedtime" when will be clear before bedtime
+ *    - "Won't be clear until X:XX AM" when still above threshold at bedtime (amber warning)
+ * 3. Caffeine curfew -- "Last call for caffeine: X:XX AM/PM", or contextual past-curfew
+ *    messages that pair coherently with the sleep estimate
  * 4. Daily caffeine total -- "Today: Xmg / 400mg" with green-to-red color gradient
+ *
+ * The sleep estimate and curfew messages are designed to tell a coherent story together.
+ * When the user is on track for bedtime, both messages are reassuring. When not, both warn.
  *
  * Curfew is always visible since default bedtime is "00:00" (per D-04).
  * Refreshes automatically every 30 seconds via useCurrentTime hook.
@@ -35,6 +42,10 @@ export function CaffeineStatus() {
 
   const dailyTotal = getDailyTotal(drinks, now);
 
+  // Determine if user will be below threshold before bedtime.
+  // This drives both the sleep estimate and curfew display for coherent messaging.
+  const onTrackForBedtime = sleepTime === null || sleepTime <= targetBedtimeMs;
+
   return (
     <section className="rounded-xl bg-white p-6 shadow-sm text-center">
       <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
@@ -46,8 +57,17 @@ export function CaffeineStatus() {
       <div className="mt-3 text-base text-gray-600">
         {sleepTime === null ? (
           <p className="text-green-600 font-medium">You're clear to sleep</p>
+        ) : sleepTime <= targetBedtimeMs ? (
+          <p className="text-green-600 font-medium">
+            On track for your{' '}
+            <span className="font-semibold">{format(new Date(targetBedtimeMs), 'h:mm a')}</span>
+            {' '}bedtime
+          </p>
         ) : (
-          <p>Safe to sleep by <span className="font-semibold text-gray-900">{format(new Date(sleepTime), 'h:mm a')}</span></p>
+          <p className="text-amber-600">
+            Won't be clear until{' '}
+            <span className="font-semibold">{format(new Date(sleepTime), 'h:mm a')}</span>
+          </p>
         )}
       </div>
       <div className="mt-2 text-sm text-gray-500">
@@ -55,6 +75,17 @@ export function CaffeineStatus() {
           <p className="text-amber-600">Caffeine already above bedtime target</p>
         ) : curfewResult.status === 'too_soon' ? (
           <p className="text-gray-400">Curfew has passed for tonight</p>
+        ) : curfewResult.status === 'curfew_passed' ? (
+          onTrackForBedtime ? (
+            <p className="text-gray-400">Past curfew for standard coffee</p>
+          ) : (
+            <p className="text-gray-400">
+              Caffeine curfew was{' '}
+              <span className="font-semibold text-gray-500">
+                {format(new Date(curfewResult.time), 'h:mm a')}
+              </span>
+            </p>
+          )
         ) : (
           <p>
             Last call for caffeine:{' '}

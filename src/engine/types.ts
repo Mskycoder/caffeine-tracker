@@ -17,13 +17,17 @@ export interface Settings {
 /**
  * Discriminated result from getCaffeineCurfew.
  *
- * - "ok": A valid curfew time was found (epoch ms).
+ * - "ok": A valid curfew time was found in the future (epoch ms).
+ * - "curfew_passed": A valid curfew time exists but has already passed (epoch ms).
+ *   Common for after-midnight bedtimes during the late evening -- e.g., bedtime 3 AM,
+ *   curfew was at 10:10 PM, and it's now 10:30 PM.
  * - "budget_exceeded": Existing drinks already push bedtime caffeine above threshold.
- * - "too_soon": Bedtime is too close for even a right-now standard dose to decay
- *   below the remaining budget. Current caffeine may be well below threshold.
+ * - "too_soon": Bedtime is so close that even with zero existing caffeine and scanning
+ *   back 24 hours, no valid curfew window exists. Extremely rare in practice.
  */
 export type CurfewResult =
   | { status: 'ok'; time: number }
+  | { status: 'curfew_passed'; time: number }
   | { status: 'budget_exceeded' }
   | { status: 'too_soon' };
 

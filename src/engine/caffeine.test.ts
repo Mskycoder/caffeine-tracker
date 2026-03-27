@@ -334,20 +334,27 @@ describe('getCaffeineCurfew', () => {
     expect(result.status).toBe('budget_exceeded');
   });
 
-  it('returns too_soon when bedtime is close but existing caffeine is zero', () => {
+  it('returns curfew_passed when bedtime is close but existing caffeine is zero', () => {
     // No drinks, but bedtime is only 1 hour away -- a 95mg drink now
-    // can't decay below 50mg in 1 hour, even though current caffeine is 0
+    // can't decay below 50mg in 1 hour, even though current caffeine is 0.
+    // The scan finds a valid curfew ~4h50m before bedtime, which is in the past.
     const now = BASE_TIME;
     const bedtime = now + 1 * 3_600_000; // 1 hour from now
 
     const result = getCaffeineCurfew([], bedtime, now, 5, 50);
 
-    // Budget is 50 (threshold - 0 existing) but a 95mg drink consumed now
-    // would contribute ~74mg at bedtime (near absorption peak), exceeding budget
-    expect(result.status).toBe('too_soon');
+    expect(result.status).toBe('curfew_passed');
+    if (result.status === 'curfew_passed') {
+      // The curfew time should be before now (already passed)
+      expect(result.time).toBeLessThan(now);
+      // And roughly 4h50m before bedtime
+      const hoursBeforeBedtime = (bedtime - result.time) / 3_600_000;
+      expect(hoursBeforeBedtime).toBeGreaterThan(4.5);
+      expect(hoursBeforeBedtime).toBeLessThan(5.5);
+    }
   });
 
-  it('distinguishes budget_exceeded from too_soon correctly', () => {
+  it('distinguishes budget_exceeded from curfew_passed correctly', () => {
     // budget_exceeded: high existing caffeine, long time to bedtime
     const hugeDrink = makeDrink({ caffeineMg: 5000, timestamp: BASE_TIME });
     const now = BASE_TIME + 3_600_000;
@@ -356,10 +363,45 @@ describe('getCaffeineCurfew', () => {
     const budgetResult = getCaffeineCurfew([hugeDrink], bedtime, now, 5, 50);
     expect(budgetResult.status).toBe('budget_exceeded');
 
-    // too_soon: zero caffeine, short time to bedtime
-    const tooSoonResult = getCaffeineCurfew([], bedtime - 9.5 * 3_600_000, now, 5, 50);
-    // bedtime 0.5hr away with zero drinks
-    expect(tooSoonResult.status).toBe('too_soon');
+    // curfew_passed: zero caffeine, short time to bedtime
+    const curfewPassedResult = getCaffeineCurfew([], bedtime - 9.5 * 3_600_000, now, 5, 50);
+    // bedtime 0.5hr away with zero drinks -- curfew was hours ago
+    expect(curfewPassedResult.status).toBe('curfew_passed');
+    if (curfewPassedResult.status === 'curfew_passed') {
+      expect(curfewPassedResult.time).toBeLessThan(now);
+    }
+  });
+
+  it('returns curfew_passed with time for after-midnight bedtime in late evening', () => {
+    // Key scenario: it's 10:30 PM and bedtime is 3 AM (4.5 hours away).
+    // Curfew should have been ~10:10 PM -- 20 minutes ago.
+    const now = new Date(2026, 2, 26, 22, 30, 0, 0).getTime();
+    const bedtime = new Date(2026, 2, 27, 3, 0, 0, 0).getTime();
+
+    const result = getCaffeineCurfew([], bedtime, now, 5, 50);
+
+    expect(result.status).toBe('curfew_passed');
+    if (result.status === 'curfew_passed') {
+      // Curfew time should be around 10:10 PM (before now)
+      expect(result.time).toBeLessThan(now);
+      expect(result.time).toBeGreaterThan(now - 3_600_000); // within 1 hour ago
+    }
+  });
+
+  it('returns ok for after-midnight bedtime when checked during the day', () => {
+    // It's 2 PM and bedtime is 3 AM (13 hours away) -- plenty of time
+    const now = new Date(2026, 2, 26, 14, 0, 0, 0).getTime();
+    const bedtime = new Date(2026, 2, 27, 3, 0, 0, 0).getTime();
+
+    const result = getCaffeineCurfew([], bedtime, now, 5, 50);
+
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') {
+      // Curfew should be around 10:10 PM tonight
+      const curfewHour = new Date(result.time).getHours();
+      expect(curfewHour).toBeGreaterThanOrEqual(21);
+      expect(curfewHour).toBeLessThanOrEqual(23);
+    }
   });
 });
 

@@ -44,7 +44,9 @@ describe('CaffeineStatus', () => {
     expect(numericValue).toBeLessThan(200);
   });
 
-  it('shows sleep-ready time when above threshold', () => {
+  it('shows on-track message when above threshold but will clear before bedtime', () => {
+    // 200mg drink 1 hour ago with default bedtime 00:00 (midnight, 12h away).
+    // Sleep-ready ~10 PM, well before midnight -> "On track for your 12:00 AM bedtime"
     useCaffeineStore.setState({
       drinks: [{
         id: 'test-2',
@@ -57,10 +59,32 @@ describe('CaffeineStatus', () => {
 
     render(<CaffeineStatus />);
 
-    // Should show "Safe to sleep by" followed by a time
-    const safeText = screen.getByText(/Safe to sleep by/);
-    expect(safeText).toBeInTheDocument();
-    expect(safeText.textContent).toMatch(/Safe to sleep by \d{1,2}:\d{2} [AP]M/);
+    // Should show bedtime-contextualized "On track" message
+    const onTrackText = screen.getByText(/On track for your/);
+    expect(onTrackText).toBeInTheDocument();
+    expect(onTrackText.textContent).toMatch(/On track for your \d{1,2}:\d{2} [AP]M bedtime/);
+  });
+
+  it('shows warning when caffeine will not clear before bedtime', () => {
+    // Huge recent dose with bedtime only 2 hours away -> won't clear in time.
+    // Use a bedtime 2 hours from now. FIXED_NOW is noon UTC, so bedtime at 2 PM = '14:00'.
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-wont-clear',
+        name: 'Energy Drink',
+        caffeineMg: 500,
+        timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
+        presetId: null,
+      }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00' },
+    });
+
+    render(<CaffeineStatus />);
+
+    // Sleep-ready time will be many hours from now, well past 2 PM bedtime
+    const warningText = screen.getByText(/Won't be clear until/);
+    expect(warningText).toBeInTheDocument();
+    expect(warningText.textContent).toMatch(/Won't be clear until \d{1,2}:\d{2} [AP]M/);
   });
 
   it('shows clear to sleep when below threshold', () => {

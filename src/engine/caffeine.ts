@@ -30,16 +30,16 @@ export function parseNextBedtime(bedtimeStr: string, now: number): number {
  * Calculate the latest time a standard dose could be consumed such that
  * total caffeine at bedtime stays below threshold.
  *
- * Forward-scans from `now` to `targetBedtimeMs` in PROJECTION_STEP_MS (5 min) steps.
- * At each candidate time T, computes the contribution of a standard dose consumed
- * at T to caffeine level at bedtime. Since later drinks have less time to decay,
- * contribution increases monotonically -- so we stop at the first time that exceeds
- * the budget and return the previous step.
+ * Scans backwards from `targetBedtimeMs` to find the curfew time -- the latest
+ * point where a standard dose's contribution at bedtime stays within budget.
+ * This scan is independent of `now`, so the curfew time is always computed even
+ * if it has already passed.
  *
- * Returns a CurfewResult discriminated union:
- *   - { status: 'ok', time: number } — valid curfew epoch ms
+ * Then compares the curfew time to `now` to determine status:
+ *   - { status: 'ok', time } — curfew is in the future
+ *   - { status: 'curfew_passed', time } — curfew exists but has already passed
  *   - { status: 'budget_exceeded' } — existing drinks push bedtime caffeine above threshold
- *   - { status: 'too_soon' } — bedtime is too close for even a right-now dose to fit
+ *   - { status: 'too_soon' } — no valid curfew exists even scanning back 24 hours
  *
  * Pure function: no Date.now() calls -- all times passed as arguments (per D-05).
  */
@@ -60,9 +60,11 @@ export function getCaffeineCurfew(
 
   if (budget <= 0) return { status: 'budget_exceeded' };
 
-  // Forward-scan from now to bedtime in 5-minute steps
+  // Scan from 24 hours before bedtime to bedtime in 5-minute steps.
+  // This finds the absolute curfew time regardless of when the user checks.
+  const scanStart = targetBedtimeMs - 24 * 60 * 60 * 1000;
   let curfew: number | null = null;
-  for (let t = now; t <= targetBedtimeMs; t += PROJECTION_STEP_MS) {
+  for (let t = scanStart; t <= targetBedtimeMs; t += PROJECTION_STEP_MS) {
     const fakeDrink: DrinkEntry = {
       id: 'curfew-calc',
       name: 'Curfew',
@@ -79,6 +81,8 @@ export function getCaffeineCurfew(
   }
 
   if (curfew === null) return { status: 'too_soon' };
+
+  if (curfew < now) return { status: 'curfew_passed', time: curfew };
 
   return { status: 'ok', time: curfew };
 }
