@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
 import App from './App';
 import { useCaffeineStore } from './store/caffeine-store';
 
@@ -18,61 +19,76 @@ vi.mock('recharts', async () => {
   };
 });
 
-beforeEach(() => {
-  HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) {
-    this.setAttribute('open', '');
-  });
-  HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
-    this.removeAttribute('open');
-    this.dispatchEvent(new Event('close'));
-  });
+/**
+ * Helper to render App within a MemoryRouter at a given route.
+ * Uses MemoryRouter so tests don't need a real browser history.
+ */
+function renderAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+    </MemoryRouter>,
+  );
+}
 
+beforeEach(() => {
   useCaffeineStore.setState({
     drinks: [],
     settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
   });
 });
 
-describe('App layout', () => {
-  it('renders Header', () => {
-    render(<App />);
-    expect(screen.getByText('Caffeine Tracker')).toBeInTheDocument();
-  });
-
-  it('renders CaffeineStatus', () => {
-    render(<App />);
+describe('routing', () => {
+  it('/ renders Dashboard page with CaffeineStatus', () => {
+    renderAt('/');
     expect(screen.getByText('Current Caffeine')).toBeInTheDocument();
   });
 
-  it('renders DecayCurveChart', () => {
-    render(<App />);
+  it('/ renders Dashboard page with DecayCurveChart', () => {
+    renderAt('/');
     expect(screen.getByText('Caffeine Level')).toBeInTheDocument();
   });
 
-  it('renders DrinkHistory', () => {
-    render(<App />);
+  it('/ renders Dashboard page with DrinkHistory', () => {
+    renderAt('/');
     expect(screen.getByText("Today's Drinks")).toBeInTheDocument();
   });
 
-  it('renders SettingsPanel', () => {
-    render(<App />);
+  it('/drinks renders Drinks page with DrinkHistory', () => {
+    renderAt('/drinks');
+    expect(screen.getByText("Today's Drinks")).toBeInTheDocument();
+  });
+
+  it('/settings renders Settings page with settings controls', () => {
+    renderAt('/settings');
+    expect(screen.getByText('Metabolism Speed')).toBeInTheDocument();
+  });
+
+  it('/unknown redirects to Dashboard', () => {
+    renderAt('/nonexistent');
+    expect(screen.getByText('Current Caffeine')).toBeInTheDocument();
+  });
+});
+
+describe('navigation', () => {
+  it('renders TabBar with navigation links', () => {
+    renderAt('/');
+    const nav = screen.getByRole('navigation', { name: /main navigation/i });
+    expect(nav).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Drinks')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('does NOT render DrinkLogger content when modal is closed', () => {
-    render(<App />);
-    // DrinkLogger presets are conditionally rendered only when modal is open
-    // "Espresso" comes from DrinkPresets inside DrinkLogger -- should not appear when closed
-    expect(screen.queryByText('Espresso')).toBeNull();
-  });
-
-  it('renders DrinkLoggerModal FAB', () => {
-    render(<App />);
+  it('renders add drink button in TabBar', () => {
+    renderAt('/');
     expect(screen.getByRole('button', { name: /log a drink/i })).toBeInTheDocument();
   });
+});
 
-  it('layout order: CaffeineStatus before DecayCurveChart before DrinkHistory', () => {
-    render(<App />);
+describe('layout', () => {
+  it('Dashboard: CaffeineStatus before DecayCurveChart before DrinkHistory', () => {
+    renderAt('/');
     const html = document.body.innerHTML;
 
     const statusPos = html.indexOf('Current Caffeine');
@@ -86,5 +102,12 @@ describe('App layout', () => {
     expect(historyPos).toBeGreaterThan(-1);
     expect(statusPos).toBeLessThan(chartPos);
     expect(chartPos).toBeLessThan(historyPos);
+  });
+
+  it('does NOT render DrinkLogger content when bottom sheet is closed', () => {
+    renderAt('/');
+    // DrinkLogger presets are conditionally rendered only when sheet is open
+    // "Espresso" comes from DrinkPresets inside DrinkLogger -- should not appear when closed
+    expect(screen.queryByText('Espresso')).toBeNull();
   });
 });

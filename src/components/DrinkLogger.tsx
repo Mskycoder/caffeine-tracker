@@ -7,7 +7,7 @@ import { datetimeLocalToEpoch } from '../utils/datetime';
  * Container wiring presets + custom form + shared time picker.
  *
  * Per D-06: Default to current time, optional datetime-local picker for backdating.
- * Rendered inside DrinkLoggerModal dialog (Phase 7, D-01).
+ * Rendered inside BottomSheet (Phase 9, D-01/D-04).
  * The shared time picker state is owned here and passed to children via getTimestamp prop.
  * Per D-04: Touch targets on time picker elements are 44px minimum.
  */

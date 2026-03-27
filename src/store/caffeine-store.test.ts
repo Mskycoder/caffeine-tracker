@@ -11,6 +11,7 @@ beforeEach(() => {
   useCaffeineStore.setState({
     drinks: [],
     settings: { ...DEFAULT_SETTINGS },
+    customPresets: [],
   });
 });
 
@@ -28,6 +29,11 @@ describe('initial state', () => {
     expect(settings.halfLifeHours).toBe(5);
     expect(settings.thresholdMg).toBe(50);
     expect(settings.targetBedtime).toBe('00:00');
+  });
+
+  it('customPresets is an empty array', () => {
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets).toEqual([]);
   });
 });
 
@@ -185,9 +191,9 @@ describe('persist config', () => {
     expect(options.name).toBe('caffeine-tracker-storage');
   });
 
-  it('version is 2', () => {
+  it('version is 3', () => {
     const options = useCaffeineStore.persist.getOptions();
-    expect(options.version).toBe(2);
+    expect(options.version).toBe(3);
   });
 });
 
@@ -217,13 +223,121 @@ describe('migration', () => {
     expect(migrated.settings.targetBedtime).toBe('22:30');
   });
 
-  it('returns state unchanged for current version', () => {
-    const currentState = {
-      drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+  it('migrates v2 state to v3: adds customPresets array, preserves drinks and settings', () => {
+    const v2State = {
+      drinks: [{ id: 'drink-1', name: 'Coffee', caffeineMg: 95, timestamp: 1000, presetId: 'drip-coffee' }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00' },
     };
     const options = useCaffeineStore.persist.getOptions();
-    const result = options.migrate!(currentState, 2) as CaffeineState;
+    const migrated = options.migrate!(v2State, 2) as CaffeineState;
+    expect(migrated.customPresets).toEqual([]);
+    expect(migrated.drinks).toHaveLength(1);
+    expect(migrated.drinks[0].name).toBe('Coffee');
+    expect(migrated.settings.targetBedtime).toBe('23:00');
+  });
+
+  it('migrates v1 state to v3 (chained): targetBedtime null becomes "00:00" AND customPresets added', () => {
+    const v1State = {
+      drinks: [{ id: 'old-1', name: 'Tea', caffeineMg: 47, timestamp: 2000, presetId: null }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const migrated = options.migrate!(v1State, 1) as CaffeineState;
+    expect(migrated.settings.targetBedtime).toBe('00:00');
+    expect(migrated.customPresets).toEqual([]);
+    expect(migrated.drinks).toHaveLength(1);
+  });
+
+  it('returns v3 state unchanged', () => {
+    const v3State = {
+      drinks: [],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+      customPresets: [{ id: 'custom-abc', name: 'My Drink', caffeineMg: 100 }],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v3State, 3) as CaffeineState;
     expect(result.settings.targetBedtime).toBe('00:00');
+    expect(result.customPresets).toHaveLength(1);
+    expect(result.customPresets[0].name).toBe('My Drink');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// addCustomPreset
+// ---------------------------------------------------------------------------
+describe('addCustomPreset', () => {
+  it('creates a preset with id matching custom-{uuid} pattern', () => {
+    useCaffeineStore.getState().addCustomPreset('Morning Latte', 63);
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets).toHaveLength(1);
+    expect(customPresets[0].name).toBe('Morning Latte');
+    expect(customPresets[0].caffeineMg).toBe(63);
+    expect(customPresets[0].id).toMatch(/^custom-[0-9a-f]{8}-/);
+  });
+
+  it('appends to existing customPresets without removing previous entries', () => {
+    const state = useCaffeineStore.getState();
+    state.addCustomPreset('Drink A', 50);
+    useCaffeineStore.getState().addCustomPreset('Drink B', 100);
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets).toHaveLength(2);
+    expect(customPresets[0].name).toBe('Drink A');
+    expect(customPresets[1].name).toBe('Drink B');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateCustomPreset
+// ---------------------------------------------------------------------------
+describe('updateCustomPreset', () => {
+  it('changes only the name on the matching preset', () => {
+    useCaffeineStore.getState().addCustomPreset('Original', 75);
+    const id = useCaffeineStore.getState().customPresets[0].id;
+    useCaffeineStore.getState().updateCustomPreset(id, { name: 'Updated' });
+    const preset = useCaffeineStore.getState().customPresets[0];
+    expect(preset.name).toBe('Updated');
+    expect(preset.caffeineMg).toBe(75);
+  });
+
+  it('changes only caffeineMg on the matching preset', () => {
+    useCaffeineStore.getState().addCustomPreset('My Drink', 75);
+    const id = useCaffeineStore.getState().customPresets[0].id;
+    useCaffeineStore.getState().updateCustomPreset(id, { caffeineMg: 100 });
+    const preset = useCaffeineStore.getState().customPresets[0];
+    expect(preset.name).toBe('My Drink');
+    expect(preset.caffeineMg).toBe(100);
+  });
+
+  it('does not modify array with non-existent id', () => {
+    useCaffeineStore.getState().addCustomPreset('Existing', 50);
+    useCaffeineStore.getState().updateCustomPreset('non-existent-id', { name: 'Nope' });
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets).toHaveLength(1);
+    expect(customPresets[0].name).toBe('Existing');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// removeCustomPreset
+// ---------------------------------------------------------------------------
+describe('removeCustomPreset', () => {
+  it('removes the matching preset and leaves others intact', () => {
+    const state = useCaffeineStore.getState();
+    state.addCustomPreset('Keep', 50);
+    useCaffeineStore.getState().addCustomPreset('Remove', 100);
+    const presets = useCaffeineStore.getState().customPresets;
+    const removeId = presets[1].id;
+    useCaffeineStore.getState().removeCustomPreset(removeId);
+    const updated = useCaffeineStore.getState().customPresets;
+    expect(updated).toHaveLength(1);
+    expect(updated[0].name).toBe('Keep');
+  });
+
+  it('does not modify array with non-existent id', () => {
+    useCaffeineStore.getState().addCustomPreset('Stays', 50);
+    useCaffeineStore.getState().removeCustomPreset('non-existent-id');
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets).toHaveLength(1);
+    expect(customPresets[0].name).toBe('Stays');
   });
 });

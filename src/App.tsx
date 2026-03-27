@@ -1,30 +1,26 @@
-import { Header } from './components/Header';
-import { CaffeineStatus } from './components/CaffeineStatus';
-import { DecayCurveChart } from './components/DecayCurveChart';
-import { DrinkHistory } from './components/DrinkHistory';
-import { SettingsPanel } from './components/SettingsPanel';
-import { DrinkLoggerModal } from './components/DrinkLoggerModal';
+import { Routes, Route, Navigate } from 'react-router';
+import { Layout } from './components/Layout';
+import { DashboardPage } from './pages/DashboardPage';
+import { DrinksPage } from './pages/DrinksPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 /**
- * App shell with centered single-column layout.
+ * Route definitions for the caffeine tracker app.
  *
- * Layout order: Header -> CaffeineStatus (hero) -> Decay Chart ->
- *               Drink History -> Settings Panel.
- * DrinkLogger moved to modal triggered by FAB (Phase 7, D-01).
- * Per D-08/D-09: Safe-area padding on outer container.
+ * Layout shell wraps all pages (provides container + TabBar + BottomSheet).
+ * Routes: / -> Dashboard, /drinks -> Drinks, /settings -> Settings.
+ * Unknown routes redirect to / (catch-all).
  */
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
-        <Header />
-        <CaffeineStatus />
-        <DecayCurveChart />
-        <DrinkHistory />
-        <SettingsPanel />
-      </div>
-      <DrinkLoggerModal />
-    </div>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="drinks" element={<DrinksPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   );
 }
 

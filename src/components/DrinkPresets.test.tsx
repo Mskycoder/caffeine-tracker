@@ -17,6 +17,7 @@ beforeEach(() => {
   useCaffeineStore.setState({
     drinks: [],
     settings: { ...DEFAULT_SETTINGS },
+    customPresets: [],
   });
 });
 
@@ -80,5 +81,81 @@ describe('DrinkPresets', () => {
     // Second click during confirmation flash (within 1 second)
     await user.click(screen.getByText('Cold Brew'));
     expect(useCaffeineStore.getState().drinks).toHaveLength(1);
+  });
+
+  describe('without custom presets', () => {
+    it('does NOT render "My Drinks" heading when customPresets is empty', () => {
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      expect(screen.queryByText('My Drinks')).not.toBeInTheDocument();
+    });
+
+    it('built-in section shows "Drinks" heading (not "Built-in") when no custom presets', () => {
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      expect(screen.getByText('Drinks')).toBeInTheDocument();
+      expect(screen.queryByText('Built-in')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('with custom presets', () => {
+    beforeEach(() => {
+      useCaffeineStore.setState({
+        drinks: [],
+        settings: { ...DEFAULT_SETTINGS },
+        customPresets: [
+          { id: 'custom-test-1', name: 'My Latte', caffeineMg: 80 },
+          { id: 'custom-test-2', name: 'Afternoon Brew', caffeineMg: 120 },
+        ],
+      });
+    });
+
+    it('renders "My Drinks" section heading when custom presets exist', () => {
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      expect(screen.getByText('My Drinks')).toBeInTheDocument();
+    });
+
+    it('renders custom preset names and their caffeine amounts', () => {
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      expect(screen.getByText('My Latte')).toBeInTheDocument();
+      // 80mg appears twice: custom "My Latte" and built-in "Energy Drink"
+      expect(screen.getAllByText('80mg').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Afternoon Brew')).toBeInTheDocument();
+      expect(screen.getByText('120mg')).toBeInTheDocument();
+    });
+
+    it('renders "Built-in" section heading (not "Drinks") when custom presets exist', () => {
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      expect(screen.getByText('Built-in')).toBeInTheDocument();
+      expect(screen.queryByText('Drinks')).not.toBeInTheDocument();
+    });
+
+    it('clicking a custom preset logs drink with presetId matching the custom preset id', async () => {
+      const user = userEvent.setup();
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+
+      await user.click(screen.getByText('My Latte'));
+
+      const { drinks } = useCaffeineStore.getState();
+      expect(drinks).toHaveLength(1);
+      expect(drinks[0].name).toBe('My Latte');
+      expect(drinks[0].caffeineMg).toBe(80);
+      expect(drinks[0].presetId).toBe('custom-test-1');
+      expect(drinks[0].timestamp).toBe(FIXED_TIMESTAMP);
+    });
+
+    it('confirmation flash works for custom presets', async () => {
+      const user = userEvent.setup();
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+
+      await user.click(screen.getByText('Afternoon Brew'));
+
+      expect(screen.getByText('Logged')).toBeInTheDocument();
+    });
+
+    it('custom preset cards do NOT have edit/delete buttons (no Pencil/Trash2 icons)', () => {
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      // No edit or delete aria-labels should exist in the DrinkPresets component
+      expect(screen.queryByLabelText(/Edit/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Delete/)).not.toBeInTheDocument();
+    });
   });
 });

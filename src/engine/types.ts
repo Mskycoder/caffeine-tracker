@@ -14,6 +14,13 @@ export interface Settings {
   targetBedtime: string | null;  // HH:mm format or null
 }
 
+/** A user-created custom drink preset (Phase 10). Per D-06. */
+export interface CustomPreset {
+  id: string;           // `custom-${crypto.randomUUID()}` — serves as both CRUD key and presetId for color derivation
+  name: string;         // user-entered drink name (1-40 chars)
+  caffeineMg: number;   // caffeine content in mg (1-1000)
+}
+
 /**
  * Discriminated result from getCaffeineCurfew.
  *
