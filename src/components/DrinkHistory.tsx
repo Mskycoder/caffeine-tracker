@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useCaffeineStore } from '../store/caffeine-store';
 import { useCurrentTime } from '../hooks/useCurrentTime';
-import { epochToDatetimeLocal, datetimeLocalToEpoch } from '../utils/datetime';
-import { format, startOfDay } from 'date-fns';
+import { DrinkRow } from './DrinkRow';
+import { startOfDay } from 'date-fns';
 import type { DrinkEntry } from '../engine/types';
 
 /**
@@ -22,14 +22,13 @@ function getTodaysDrinks(drinks: DrinkEntry[], now: number): DrinkEntry[] {
 /**
  * Today's drinks list component.
  *
- * Displays all drinks logged today in a compact list with:
- * - Drink name on the left
- * - Caffeine mg, formatted timestamp, edit button, and delete button on the right
+ * Displays all drinks logged today in a compact list using DrinkRow for each entry.
  *
  * Delete uses a confirm-tap pattern: first tap shows "Confirm?", second tap removes.
  * Confirm state auto-resets after 3 seconds. Only one drink can be in confirm state at a time.
+ * Edit and delete are mutually exclusive (only one row active at a time).
  *
- * Per D-09: Compact rows, text-only, no icons or colors.
+ * Per D-09: Compact rows with lucide-react icon buttons (Pencil/Trash2).
  * Per D-11: Empty state shows "No drinks logged today" centered in gray.
  *
  * Refreshes automatically every 30 seconds via useCurrentTime hook.
@@ -43,7 +42,6 @@ export function DrinkHistory() {
 
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTimestamp, setEditTimestamp] = useState('');
 
   const handleDelete = useCallback((id: string) => {
     if (confirmingDeleteId === id) {
@@ -52,7 +50,6 @@ export function DrinkHistory() {
     } else {
       // Mutual exclusion: clear edit state when entering delete confirm
       setEditingId(null);
-      setEditTimestamp('');
       setConfirmingDeleteId(id);
       setTimeout(() => setConfirmingDeleteId((current) => current === id ? null : current), 3000);
     }
@@ -60,21 +57,16 @@ export function DrinkHistory() {
 
   const startEdit = useCallback((drink: DrinkEntry) => {
     setEditingId(drink.id);
-    setEditTimestamp(epochToDatetimeLocal(drink.timestamp));
     setConfirmingDeleteId(null); // Mutual exclusion: clear delete confirm
   }, []);
 
-  const saveEdit = useCallback(() => {
-    if (editingId && editTimestamp) {
-      updateDrink(editingId, { timestamp: datetimeLocalToEpoch(editTimestamp) });
-    }
+  const saveEdit = useCallback((id: string, timestamp: number) => {
+    updateDrink(id, { timestamp });
     setEditingId(null);
-    setEditTimestamp('');
-  }, [editingId, editTimestamp, updateDrink]);
+  }, [updateDrink]);
 
   const cancelEdit = useCallback(() => {
     setEditingId(null);
-    setEditTimestamp('');
   }, []);
 
   return (
@@ -88,68 +80,18 @@ export function DrinkHistory() {
         </p>
       ) : (
         <ul className="divide-y divide-gray-100">
-          {todaysDrinks.map((drink) =>
-            editingId === drink.id ? (
-              <li key={drink.id} className="py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900">{drink.name}</span>
-                  <span className="text-sm text-gray-500">{drink.caffeineMg} mg</span>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="datetime-local"
-                    value={editTimestamp}
-                    onChange={(e) => setEditTimestamp(e.target.value)}
-                    className="min-h-[44px] text-sm border border-gray-300 rounded px-3 py-2 flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={saveEdit}
-                    className="min-h-[44px] px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="min-h-[44px] px-3 py-2 text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </li>
-            ) : (
-              <li key={drink.id} className="py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900">{drink.name}</span>
-                  <div className="flex items-center gap-3 text-sm text-gray-500">
-                    <span>{drink.caffeineMg} mg</span>
-                    <span>{format(new Date(drink.timestamp), 'h:mm a')}</span>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(drink)}
-                      aria-label={`Edit ${drink.name}`}
-                      className="min-h-[44px] px-3 py-2 text-sm text-gray-400 hover:text-blue-500 flex items-center"
-                    >
-                      edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(drink.id)}
-                      aria-label={`Delete ${drink.name}`}
-                      className={`min-h-[44px] px-3 py-2 text-sm rounded transition-colors flex items-center ${
-                        confirmingDeleteId === drink.id
-                          ? 'bg-red-100 text-red-700 font-medium'
-                          : 'text-gray-400 hover:text-red-500'
-                      }`}
-                    >
-                      {confirmingDeleteId === drink.id ? 'Confirm?' : 'x'}
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ),
-          )}
+          {todaysDrinks.map((drink) => (
+            <DrinkRow
+              key={drink.id}
+              drink={drink}
+              isEditing={editingId === drink.id}
+              isConfirmingDelete={confirmingDeleteId === drink.id}
+              onStartEdit={startEdit}
+              onSaveEdit={saveEdit}
+              onCancelEdit={cancelEdit}
+              onDelete={handleDelete}
+            />
+          ))}
         </ul>
       )}
     </section>

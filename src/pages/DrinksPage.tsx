@@ -1,18 +1,12 @@
 import { MyDrinksManager } from '../components/MyDrinksManager';
-import { DrinkHistory } from '../components/DrinkHistory';
 
 /**
- * Drinks page with custom preset management and drink history.
+ * Drinks page with custom preset management.
  *
- * Renders MyDrinksManager (create/edit/delete custom presets) above DrinkHistory
- * (today's logged drinks). Custom presets created here appear in the BottomSheet
- * under "My Drinks" when logging drinks.
+ * Renders MyDrinksManager (create/edit/delete custom presets). Custom presets
+ * created here appear in the BottomSheet under "My Drinks" when logging drinks.
+ * This page is purely preset CRUD -- drink history is on the History page.
  */
 export function DrinksPage() {
-  return (
-    <div className="space-y-4">
-      <MyDrinksManager />
-      <DrinkHistory />
-    </div>
-  );
+  return <MyDrinksManager />;
 }

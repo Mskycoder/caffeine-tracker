@@ -87,7 +87,7 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
       {/* Sheet / Modal */}
       <div
         ref={sheetRef}
-        className={`fixed z-50 bg-white overflow-y-auto
+        className={`fixed z-50 bg-white flex flex-col
           bottom-0 inset-x-0 rounded-t-2xl max-h-[85vh]
           pb-[env(safe-area-inset-bottom)]
           md:bottom-auto md:inset-auto md:top-1/2 md:left-1/2
@@ -124,8 +124,8 @@ export function BottomSheet({ open, onClose, children }: BottomSheetProps) {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="px-4 pb-4">{children}</div>
+        {/* Content — scrollable area; min-h-0 lets flex child shrink below content size */}
+        <div className="px-4 pb-4 overflow-y-auto min-h-0">{children}</div>
       </div>
     </>
   );

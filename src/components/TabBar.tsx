@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { LayoutDashboard, Coffee, Settings, Plus } from 'lucide-react';
+import { LayoutDashboard, Coffee, Settings, Plus, ClipboardList } from 'lucide-react';
 
 interface TabBarProps {
   onAddDrink: () => void;
@@ -8,9 +8,11 @@ interface TabBarProps {
 /**
  * Bottom tab bar (mobile) / floating pill dock (desktop/tablet).
  *
- * Three NavLink tabs (Dashboard, Drinks, Settings) with a center "+"
+ * Four NavLink tabs (Dashboard, Drinks, History, Settings) with a center "+"
  * action button that triggers the drink-logging bottom sheet. Active tab
  * shows a filled icon in primary color; inactive tabs show outlined gray icons.
+ *
+ * 5 items total: Dashboard, Drinks, [+], History, Settings.
  *
  * Responsive: Full-width fixed bar on mobile (< 768px) transforms into a
  * centered pill-shaped floating dock on desktop/tablet (>= 768px) via
@@ -34,7 +36,7 @@ export function TabBar({ onAddDrink }: TabBarProps) {
           to="/"
           end
           className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 py-2 px-3 ${
+            `flex flex-col items-center gap-0.5 py-2 px-2 ${
               isActive ? 'text-purple-600' : 'text-gray-400'
             }`
           }
@@ -54,7 +56,7 @@ export function TabBar({ onAddDrink }: TabBarProps) {
         <NavLink
           to="/drinks"
           className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 py-2 px-3 ${
+            `flex flex-col items-center gap-0.5 py-2 px-2 ${
               isActive ? 'text-purple-600' : 'text-gray-400'
             }`
           }
@@ -82,11 +84,31 @@ export function TabBar({ onAddDrink }: TabBarProps) {
           <Plus size={28} />
         </button>
 
+        {/* History tab */}
+        <NavLink
+          to="/history"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-0.5 py-2 px-2 ${
+              isActive ? 'text-purple-600' : 'text-gray-400'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <ClipboardList
+                size={24}
+                fill={isActive ? 'currentColor' : 'none'}
+              />
+              <span className="text-xs">History</span>
+            </>
+          )}
+        </NavLink>
+
         {/* Settings tab */}
         <NavLink
           to="/settings"
           className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 py-2 px-3 ${
+            `flex flex-col items-center gap-0.5 py-2 px-2 ${
               isActive ? 'text-purple-600' : 'text-gray-400'
             }`
           }

@@ -13,7 +13,7 @@ interface DrinkPresetsProps {
  * When custom presets exist, renders "My Drinks" section above "Built-in" section.
  * When no custom presets exist, renders only the built-in presets under a "Drinks" heading.
  *
- * Per D-01: 12 built-in presets as scrollable vertical card list, text-only, no emoji.
+ * Per D-01: 12 built-in presets in a compact 2-column grid, text-only, no emoji.
  * Per D-03: Tapping a card immediately logs the drink via addDrink.
  * Per D-04: Custom presets appear under "My Drinks" heading above built-in presets.
  * Per D-05: Built-in presets appear under "Built-in" heading when custom presets exist.
@@ -44,23 +44,23 @@ export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
       {hasCustom && (
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">My Drinks</h3>
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             {customPresets.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => logDrink(preset.name, preset.caffeineMg, preset.id)}
-                className={`w-full text-left px-4 py-3 min-h-[44px] rounded-lg border transition-colors duration-300
+                className={`text-left px-3 py-2 min-h-[44px] rounded-lg border transition-colors duration-300
                   ${
                     confirmedId === preset.id
                       ? 'bg-green-50 border-green-400'
                       : 'bg-white border-gray-200 hover:border-gray-300'
                   }`}
               >
-                <span className="font-medium">{preset.name}</span>
-                <span className="ml-2 text-gray-500">{preset.caffeineMg}mg</span>
+                <span className="font-medium text-sm">{preset.name}</span>
+                <span className="block text-xs text-gray-500">{preset.caffeineMg}mg</span>
                 {confirmedId === preset.id && (
-                  <span className="float-right text-green-600">Logged</span>
+                  <span className="block text-xs text-green-600">Logged</span>
                 )}
               </button>
             ))}
@@ -73,23 +73,23 @@ export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
           {hasCustom ? 'Built-in' : 'Drinks'}
         </h3>
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
           {DRINK_PRESETS.map((preset) => (
             <button
               key={preset.presetId}
               type="button"
               onClick={() => logDrink(preset.name, preset.caffeineMg, preset.presetId)}
-              className={`w-full text-left px-4 py-3 min-h-[44px] rounded-lg border transition-colors duration-300
+              className={`text-left px-3 py-2 min-h-[44px] rounded-lg border transition-colors duration-300
                 ${
                   confirmedId === preset.presetId
                     ? 'bg-green-50 border-green-400'
                     : 'bg-white border-gray-200 hover:border-gray-300'
                 }`}
             >
-              <span className="font-medium">{preset.name}</span>
-              <span className="ml-2 text-gray-500">{preset.caffeineMg}mg</span>
+              <span className="font-medium text-sm">{preset.name}</span>
+              <span className="block text-xs text-gray-500">{preset.caffeineMg}mg</span>
               {confirmedId === preset.presetId && (
-                <span className="float-right text-green-600">Logged</span>
+                <span className="block text-xs text-green-600">Logged</span>
               )}
             </button>
           ))}

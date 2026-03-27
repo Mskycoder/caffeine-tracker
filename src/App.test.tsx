@@ -54,9 +54,14 @@ describe('routing', () => {
     expect(screen.getByText("Today's Drinks")).toBeInTheDocument();
   });
 
-  it('/drinks renders Drinks page with DrinkHistory', () => {
+  it('/drinks renders Drinks page with MyDrinksManager', () => {
     renderAt('/drinks');
-    expect(screen.getByText("Today's Drinks")).toBeInTheDocument();
+    expect(screen.getByText('My Drinks')).toBeInTheDocument();
+  });
+
+  it('/history renders History page with filter chips', () => {
+    renderAt('/history');
+    expect(screen.getByText('Last 7 Days')).toBeInTheDocument();
   });
 
   it('/settings renders Settings page with settings controls', () => {
@@ -77,6 +82,7 @@ describe('navigation', () => {
     expect(nav).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Drinks')).toBeInTheDocument();
+    expect(screen.getByText('History')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 

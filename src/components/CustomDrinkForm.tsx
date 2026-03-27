@@ -39,7 +39,7 @@ export function CustomDrinkForm({ getTimestamp }: CustomDrinkFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 items-center">
+    <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-center">
       <input
         type="number"
         min="1"
@@ -56,7 +56,7 @@ export function CustomDrinkForm({ getTimestamp }: CustomDrinkFormProps) {
         placeholder="Name (optional)"
         value={nameInput}
         onChange={(e) => setNameInput(e.target.value)}
-        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg min-h-[44px]"
+        className="min-w-0 flex-1 px-3 py-2 border border-gray-200 rounded-lg min-h-[44px]"
         aria-label="Drink name"
       />
       <button
