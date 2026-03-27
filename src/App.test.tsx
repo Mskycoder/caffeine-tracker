@@ -45,6 +45,8 @@ beforeEach(() => {
         liverDisease: 'none' as const, cyp1a2Genotype: 'unknown' as const,
         cyp1a2Inhibitor: 'none' as const,
       },
+      hiddenPresetIds: [],
+      showResearchThresholds: false,
     },
   });
 });

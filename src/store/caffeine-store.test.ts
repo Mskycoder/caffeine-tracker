@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS = {
     liverDisease: 'none' as const, cyp1a2Genotype: 'unknown' as const,
     cyp1a2Inhibitor: 'none' as const,
   },
+  hiddenPresetIds: [] as string[],
+  showResearchThresholds: false,
 };
 
 beforeEach(() => {
@@ -201,9 +203,9 @@ describe('persist config', () => {
     expect(options.name).toBe('caffeine-tracker-storage');
   });
 
-  it('version is 5', () => {
+  it('version is 6', () => {
     const options = useCaffeineStore.persist.getOptions();
-    expect(options.version).toBe(5);
+    expect(options.version).toBe(6);
   });
 });
 
@@ -246,7 +248,7 @@ describe('migration', () => {
     expect(migrated.settings.targetBedtime).toBe('23:00');
   });
 
-  it('migrates v1 state to v5 (chained): targetBedtime, customPresets, metabolismMode, covariates, schedules', () => {
+  it('migrates v1 state to v6 (chained): targetBedtime, customPresets, metabolismMode, covariates, schedules, hiddenPresetIds, showResearchThresholds', () => {
     const v1State = {
       drinks: [{ id: 'old-1', name: 'Tea', caffeineMg: 47, timestamp: 2000, presetId: null }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
@@ -258,6 +260,8 @@ describe('migration', () => {
     expect(migrated.settings.metabolismMode).toBe('simple');
     expect(migrated.settings.covariates).toEqual(DEFAULT_SETTINGS.covariates);
     expect(migrated.schedules).toEqual([]);
+    expect(migrated.settings.hiddenPresetIds).toEqual([]);
+    expect(migrated.settings.showResearchThresholds).toBe(false);
     expect(migrated.drinks).toHaveLength(1);
   });
 
@@ -296,15 +300,31 @@ describe('migration', () => {
     expect(result.customPresets[0].name).toBe('My Drink');
   });
 
-  it('returns v5 state unchanged', () => {
+  it('migrates v5 state to v6 adding hiddenPresetIds and showResearchThresholds', () => {
     const v5State = {
+      drinks: [],
+      settings: { ...DEFAULT_SETTINGS },
+      customPresets: [],
+      schedules: [],
+    };
+    // Remove the new fields to simulate a real v5 state
+    delete (v5State.settings as Record<string, unknown>).hiddenPresetIds;
+    delete (v5State.settings as Record<string, unknown>).showResearchThresholds;
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v5State, 5) as CaffeineState;
+    expect(result.settings.hiddenPresetIds).toEqual([]);
+    expect(result.settings.showResearchThresholds).toBe(false);
+  });
+
+  it('returns v6 state unchanged', () => {
+    const v6State = {
       drinks: [],
       settings: { ...DEFAULT_SETTINGS },
       customPresets: [],
       schedules: [{ id: 'sched-1', presetId: 'drip-coffee', name: 'Drip Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1, 2, 3, 4, 5], paused: false, lastRunDate: null }],
     };
     const options = useCaffeineStore.persist.getOptions();
-    const result = options.migrate!(v5State, 5) as CaffeineState;
+    const result = options.migrate!(v6State, 6) as CaffeineState;
     expect(result.schedules).toHaveLength(1);
     expect(result.schedules[0].name).toBe('Drip Coffee');
   });

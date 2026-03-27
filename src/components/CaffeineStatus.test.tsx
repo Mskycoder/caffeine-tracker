@@ -25,6 +25,7 @@ describe('CaffeineStatus', () => {
       settings: {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
+        hiddenPresetIds: [], showResearchThresholds: false,
       },
     });
   });
@@ -86,7 +87,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     render(<CaffeineStatus />);
@@ -135,7 +136,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 6 * 3_600_000, // 6 hours ago
         presetId: 'tea',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     render(<CaffeineStatus />);
@@ -152,7 +153,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     render(<CaffeineStatus />);
@@ -163,7 +164,7 @@ describe('CaffeineStatus', () => {
     // No drinks -- full budget available, should show a curfew time
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     render(<CaffeineStatus />);
@@ -225,6 +226,7 @@ describe('CaffeineStatus', () => {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
         metabolismMode: 'advanced' as const,
         covariates: { ...defaultCovariates, sex: 'female' as const },
+        hiddenPresetIds: [], showResearchThresholds: false,
       },
     });
 
@@ -255,7 +257,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     render(<CaffeineStatus />);
@@ -274,7 +276,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     render(<CaffeineStatus />);
@@ -286,7 +288,7 @@ describe('CaffeineStatus', () => {
   it('does not show bedtime mg when targetBedtime is null', () => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     render(<CaffeineStatus />);

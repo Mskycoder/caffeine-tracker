@@ -37,7 +37,7 @@ describe('DecayCurveChart', () => {
   beforeEach(() => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
   });
 
@@ -109,7 +109,7 @@ describe('DecayCurveChart', () => {
         timestamp: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');
@@ -130,7 +130,7 @@ describe('DecayCurveChart', () => {
         timestamp: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'getCaffeineLevel');
@@ -149,7 +149,7 @@ describe('DecayCurveChart', () => {
   it('does not call parseNextBedtime when targetBedtime is null', () => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');

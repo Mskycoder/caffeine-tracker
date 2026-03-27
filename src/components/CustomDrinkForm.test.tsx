@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS = {
   targetBedtime: null,
   metabolismMode: 'simple' as const,
   covariates: { ...DEFAULT_COVARIATES },
+  hiddenPresetIds: [] as string[],
+  showResearchThresholds: false,
 };
 
 const FIXED_TIMESTAMP = 1711382400000;

@@ -10,6 +10,8 @@ const defaultSettings = {
   targetBedtime: '00:00',
   metabolismMode: 'simple' as const,
   covariates: { ...DEFAULT_COVARIATES },
+  hiddenPresetIds: [] as string[],
+  showResearchThresholds: false,
 };
 
 describe('SettingsPanel', () => {

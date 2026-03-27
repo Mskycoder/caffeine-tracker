@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS = {
   targetBedtime: null,
   metabolismMode: 'simple' as const,
   covariates: { ...DEFAULT_COVARIATES },
+  hiddenPresetIds: [] as string[],
+  showResearchThresholds: false,
 };
 
 const FIXED_TIMESTAMP = 1711382400000;
@@ -228,6 +230,34 @@ describe('DrinkPresets', () => {
       // No edit or delete aria-labels should exist in the DrinkPresets component
       expect(screen.queryByLabelText(/Edit/)).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Delete/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('hidden preset filtering', () => {
+    it('hides built-in presets that are in hiddenPresetIds', () => {
+      useCaffeineStore.setState({
+        settings: { ...DEFAULT_SETTINGS, hiddenPresetIds: ['espresso', 'latte'] },
+        customPresets: [],
+      });
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      expect(screen.queryByText('Espresso')).not.toBeInTheDocument();
+      expect(screen.queryByText('Latte')).not.toBeInTheDocument();
+      expect(screen.getByText('Drip Coffee')).toBeInTheDocument();
+    });
+
+    it('does not render built-in section when all presets hidden', () => {
+      const allIds = [
+        'espresso', 'double-espresso', 'drip-coffee', 'pour-over',
+        'cold-brew', 'latte', 'black-tea', 'green-tea',
+        'matcha', 'energy-drink', 'cola', 'caffeine-pill',
+      ];
+      useCaffeineStore.setState({
+        settings: { ...DEFAULT_SETTINGS, hiddenPresetIds: allIds },
+        customPresets: [],
+      });
+      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      expect(screen.queryByText('Built-in')).not.toBeInTheDocument();
+      expect(screen.queryByText('Drinks')).not.toBeInTheDocument();
     });
   });
 });

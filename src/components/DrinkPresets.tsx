@@ -12,6 +12,7 @@ interface DrinkPresetsProps {
  *
  * When custom presets exist, renders "My Drinks" section above "Built-in" section.
  * When no custom presets exist, renders only the built-in presets under a "Drinks" heading.
+ * Presets in hiddenPresetIds are filtered from the built-in section (Phase 15).
  *
  * Per Phase 11 D-01/D-06: Two-tap select-then-confirm flow. First tap selects
  * (purple highlight + "Confirm" label), second tap logs. Auto-reverts after 3 seconds.
@@ -20,10 +21,12 @@ interface DrinkPresetsProps {
  * Per D-07/D-08: Brief inline confirmation flash (green highlight + "Logged"), clears after ~1 second.
  * Post-log flash blocks all taps to prevent double-logs.
  * Per Pitfall 3: No edit/delete buttons in BottomSheet (management is on DrinksPage only).
+ * Per Phase 15 D-09: Hidden presets filtered from built-in grid.
  */
 export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
   const addDrink = useCaffeineStore((s) => s.addDrink);
   const customPresets = useCaffeineStore((s) => s.customPresets);
+  const hiddenPresetIds = useCaffeineStore((s) => s.settings.hiddenPresetIds ?? []);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,6 +91,7 @@ export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
   };
 
   const hasCustom = customPresets.length > 0;
+  const visiblePresets = DRINK_PRESETS.filter((p) => !hiddenPresetIds.includes(p.presetId));
 
   return (
     <div className="space-y-4">
@@ -101,15 +105,17 @@ export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
         </div>
       )}
 
-      {/* Built-in section */}
-      <div>
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-          {hasCustom ? 'Built-in' : 'Drinks'}
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {DRINK_PRESETS.map((preset) => renderPresetCard(preset.presetId, preset.name, preset.caffeineMg))}
+      {/* Built-in section: only when visible presets exist */}
+      {visiblePresets.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            {hasCustom ? 'Built-in' : 'Drinks'}
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {visiblePresets.map((preset) => renderPresetCard(preset.presetId, preset.name, preset.caffeineMg))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

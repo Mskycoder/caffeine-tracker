@@ -43,6 +43,8 @@ export interface Settings {
   targetBedtime: string | null;  // HH:mm format or null
   metabolismMode: MetabolismMode;  // 'simple' (default) or 'advanced'
   covariates: CovariateSettings;   // health factors for advanced mode
+  hiddenPresetIds: string[];           // Phase 15: preset IDs hidden from quick-add
+  showResearchThresholds: boolean;     // Phase 17 groundwork: research threshold toggle
 }
 
 /** A user-created custom drink preset (Phase 10). Per D-06. */

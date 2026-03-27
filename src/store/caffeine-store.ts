@@ -11,7 +11,7 @@ import { getScheduledDrinksToLog, formatDateKey } from '../engine/schedule';
  * Actions: CRUD for drinks, CRUD for custom presets, CRUD for schedules, runCatchUp, partial update for settings.
  *
  * Persisted to localStorage via Zustand persist middleware (TECH-01).
- * Schema version 5. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates), v4->v5 (schedules).
+ * Schema version 6. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates), v4->v5 (schedules), v5->v6 (hiddenPresetIds, showResearchThresholds).
  */
 interface CaffeineState {
   drinks: DrinkEntry[];
@@ -43,6 +43,8 @@ export const useCaffeineStore = create<CaffeineState>()(
         targetBedtime: '00:00',
         metabolismMode: 'simple' as const,
         covariates: { ...DEFAULT_COVARIATES },
+        hiddenPresetIds: [],
+        showResearchThresholds: false,
       },
       customPresets: [],
       schedules: [],
@@ -142,7 +144,7 @@ export const useCaffeineStore = create<CaffeineState>()(
     }),
     {
       name: 'caffeine-tracker-storage',
-      version: 5,
+      version: 6,
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>;
         if (version < 2) {
@@ -179,6 +181,15 @@ export const useCaffeineStore = create<CaffeineState>()(
         if (version < 5) {
           // v4 -> v5: add schedules array (Phase 13)
           state.schedules = (state as Record<string, unknown>).schedules ?? [];
+        }
+        if (version < 6) {
+          // v5 -> v6: add hiddenPresetIds and showResearchThresholds (Phase 15/17)
+          const settings = state.settings as Record<string, unknown>;
+          state.settings = {
+            ...settings,
+            hiddenPresetIds: settings.hiddenPresetIds ?? [],
+            showResearchThresholds: settings.showResearchThresholds ?? false,
+          };
         }
         return state as unknown as CaffeineState;
       },
