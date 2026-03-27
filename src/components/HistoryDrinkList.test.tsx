@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { HistoryDrinkList } from './HistoryDrinkList';
 import { useCaffeineStore } from '../store/caffeine-store';
 import type { DrinkEntry } from '../engine/types';
