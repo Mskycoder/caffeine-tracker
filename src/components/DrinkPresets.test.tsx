@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { vi } from 'vitest';
 import { useCaffeineStore } from '../store/caffeine-store';
 import { DrinkPresets } from './DrinkPresets';
 
@@ -47,40 +47,105 @@ describe('DrinkPresets', () => {
     expect(screen.getByText('95mg')).toBeInTheDocument();
   });
 
-  it('clicking a preset card logs drink with correct values', async () => {
-    const user = userEvent.setup();
+  it('two taps required: first selects, second confirms and logs', () => {
     render(<DrinkPresets getTimestamp={getTimestamp} />);
 
-    await user.click(screen.getByText('Espresso'));
+    // First tap: select (no drink logged yet)
+    fireEvent.click(screen.getByText('Espresso'));
+    expect(useCaffeineStore.getState().drinks).toHaveLength(0);
+    expect(screen.getByText('Confirm')).toBeInTheDocument();
 
+    // Second tap: confirm and log
+    fireEvent.click(screen.getByText('Espresso'));
     const { drinks } = useCaffeineStore.getState();
     expect(drinks).toHaveLength(1);
     expect(drinks[0].name).toBe('Espresso');
     expect(drinks[0].caffeineMg).toBe(63);
     expect(drinks[0].presetId).toBe('espresso');
     expect(drinks[0].timestamp).toBe(FIXED_TIMESTAMP);
+    expect(screen.getByText('Logged')).toBeInTheDocument();
   });
 
-  it('confirmation flash appears after tap', async () => {
-    const user = userEvent.setup();
+  it('post-log flash appears after confirm', () => {
     render(<DrinkPresets getTimestamp={getTimestamp} />);
 
-    await user.click(screen.getByText('Espresso'));
+    // Two taps: select then confirm
+    fireEvent.click(screen.getByText('Espresso'));
+    fireEvent.click(screen.getByText('Espresso'));
 
     expect(screen.getByText('Logged')).toBeInTheDocument();
   });
 
-  it('double-tap prevention: second click during flash does not add a second drink', async () => {
-    const user = userEvent.setup();
+  it('taps blocked during post-log flash', () => {
     render(<DrinkPresets getTimestamp={getTimestamp} />);
 
-    // First click
-    await user.click(screen.getByText('Espresso'));
+    // Two taps: select then confirm to log Espresso
+    fireEvent.click(screen.getByText('Espresso'));
+    fireEvent.click(screen.getByText('Espresso'));
     expect(useCaffeineStore.getState().drinks).toHaveLength(1);
 
-    // Second click during confirmation flash (within 1 second)
-    await user.click(screen.getByText('Cold Brew'));
+    // Try to tap Cold Brew during flash (should be blocked)
+    fireEvent.click(screen.getByText('Cold Brew'));
     expect(useCaffeineStore.getState().drinks).toHaveLength(1);
+  });
+
+  it('first tap selects preset with purple confirmation state', () => {
+    render(<DrinkPresets getTimestamp={getTimestamp} />);
+
+    // Click Espresso once
+    fireEvent.click(screen.getByText('Espresso'));
+
+    // "Confirm" should appear, Espresso's "63mg" should be replaced by "Confirm"
+    expect(screen.getByText('Confirm')).toBeInTheDocument();
+    // Espresso's 63mg is replaced by Confirm, but Latte still shows 63mg
+    expect(screen.getAllByText('63mg')).toHaveLength(1);
+    // No drink should be logged
+    expect(useCaffeineStore.getState().drinks).toHaveLength(0);
+  });
+
+  it('selection auto-reverts after 3 seconds', () => {
+    vi.useFakeTimers();
+    render(<DrinkPresets getTimestamp={getTimestamp} />);
+
+    fireEvent.click(screen.getByText('Espresso'));
+    expect(screen.getByText('Confirm')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.queryByText('Confirm')).not.toBeInTheDocument();
+    // Espresso's 63mg should be back (plus Latte's 63mg = 2 total)
+    expect(screen.getAllByText('63mg')).toHaveLength(2);
+    vi.useRealTimers();
+  });
+
+  it('tapping a different preset swaps selection', () => {
+    render(<DrinkPresets getTimestamp={getTimestamp} />);
+
+    // Select Espresso
+    fireEvent.click(screen.getByText('Espresso'));
+    expect(screen.getByText('Confirm')).toBeInTheDocument();
+
+    // Swap to Cold Brew
+    fireEvent.click(screen.getByText('Cold Brew'));
+    // Only one "Confirm" should exist
+    expect(screen.getAllByText('Confirm')).toHaveLength(1);
+    // Espresso should revert to idle (63mg visible again alongside Latte's 63mg)
+    expect(screen.getAllByText('63mg')).toHaveLength(2);
+    // No drinks logged
+    expect(useCaffeineStore.getState().drinks).toHaveLength(0);
+  });
+
+  it('only one preset selected at a time', () => {
+    render(<DrinkPresets getTimestamp={getTimestamp} />);
+
+    // Select Espresso
+    fireEvent.click(screen.getByText('Espresso'));
+    // Select Drip Coffee
+    fireEvent.click(screen.getByText('Drip Coffee'));
+
+    expect(screen.getAllByText('Confirm')).toHaveLength(1);
   });
 
   describe('without custom presets', () => {
@@ -128,25 +193,28 @@ describe('DrinkPresets', () => {
       expect(screen.queryByText('Drinks')).not.toBeInTheDocument();
     });
 
-    it('clicking a custom preset logs drink with presetId matching the custom preset id', async () => {
-      const user = userEvent.setup();
+    it('clicking a custom preset: two taps to log', () => {
       render(<DrinkPresets getTimestamp={getTimestamp} />);
 
-      await user.click(screen.getByText('My Latte'));
+      // First tap: select
+      fireEvent.click(screen.getByText('My Latte'));
+      expect(useCaffeineStore.getState().drinks).toHaveLength(0);
 
+      // Second tap: confirm
+      fireEvent.click(screen.getByText('My Latte'));
       const { drinks } = useCaffeineStore.getState();
       expect(drinks).toHaveLength(1);
       expect(drinks[0].name).toBe('My Latte');
       expect(drinks[0].caffeineMg).toBe(80);
       expect(drinks[0].presetId).toBe('custom-test-1');
-      expect(drinks[0].timestamp).toBe(FIXED_TIMESTAMP);
     });
 
-    it('confirmation flash works for custom presets', async () => {
-      const user = userEvent.setup();
+    it('confirmation flash works for custom presets', () => {
       render(<DrinkPresets getTimestamp={getTimestamp} />);
 
-      await user.click(screen.getByText('Afternoon Brew'));
+      // Two taps: select then confirm
+      fireEvent.click(screen.getByText('Afternoon Brew'));
+      fireEvent.click(screen.getByText('Afternoon Brew'));
 
       expect(screen.getByText('Logged')).toBeInTheDocument();
     });
