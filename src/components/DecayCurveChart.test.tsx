@@ -97,4 +97,68 @@ describe('DecayCurveChart', () => {
 
     spy.mockRestore();
   });
+
+  // --- Bedtime vertical line tests (BED-02) ---
+
+  it('calls parseNextBedtime when targetBedtime is set', () => {
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-bed-1',
+        name: 'Espresso',
+        caffeineMg: 200,
+        timestamp: FIXED_NOW - 3_600_000,
+        presetId: 'espresso',
+      }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+    });
+
+    const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');
+
+    render(<DecayCurveChart />);
+
+    expect(spy).toHaveBeenCalledWith('23:00', FIXED_NOW);
+
+    spy.mockRestore();
+  });
+
+  it('calls getCaffeineLevel with bedtime timestamp when targetBedtime is set', () => {
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-bed-2',
+        name: 'Espresso',
+        caffeineMg: 200,
+        timestamp: FIXED_NOW - 3_600_000,
+        presetId: 'espresso',
+      }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+    });
+
+    const spy = vi.spyOn(caffeineEngine, 'getCaffeineLevel');
+
+    render(<DecayCurveChart />);
+
+    // parseNextBedtime('23:00', FIXED_NOW) returns the next 11 PM occurrence
+    const expectedBedtimeMs = caffeineEngine.parseNextBedtime('23:00', FIXED_NOW);
+    // getCaffeineLevel should be called with bedtime timestamp (among other calls)
+    const bedtimeCall = spy.mock.calls.find((call) => call[1] === expectedBedtimeMs);
+    expect(bedtimeCall).toBeDefined();
+
+    spy.mockRestore();
+  });
+
+  it('does not call parseNextBedtime when targetBedtime is null', () => {
+    useCaffeineStore.setState({
+      drinks: [],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+    });
+
+    const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');
+    spy.mockClear(); // Ensure clean slate from any prior test spies
+
+    render(<DecayCurveChart />);
+
+    expect(spy).not.toHaveBeenCalled();
+
+    spy.mockRestore();
+  });
 });

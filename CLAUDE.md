@@ -41,6 +41,17 @@
 - **PWA** (`vite.config.ts` VitePWA plugin): Generates service worker (Workbox precache of all static assets, navigateFallback for SPA routing) and web app manifest. `registerType: 'autoUpdate'` for silent updates. No custom service worker code -- pure config.
 - **Routing** (`src/main.tsx` BrowserRouter + `src/App.tsx` Routes): Client-side routing with react-router v7. BrowserRouter with `basename={import.meta.env.BASE_URL}` for GitHub Pages. Routes: `/` -> Dashboard, `/drinks` -> Drinks, `/history` -> History, `/settings` -> Settings, `*` -> redirect to `/`. 404.html fallback for GitHub Pages deep links.
 
+## GSD Workflow
+
+When running GSD phase workflows (discuss-phase, ui-phase, plan-phase, execute-phase), always check `.planning/config.json` `workflow.auto_advance` after completing a step. If `auto_advance` is `true`, automatically invoke the next step in the chain using the Skill tool instead of stopping and returning to the user:
+
+- After **discuss-phase** completes → invoke `gsd:ui-phase` (if `workflow.ui_phase` is true) or `gsd:plan-phase`
+- After **ui-phase** completes → invoke `gsd:plan-phase`
+- After **plan-phase** completes → invoke `gsd:execute-phase`
+- After **execute-phase** completes → stop (phase boundary)
+
+This chains the full intra-phase pipeline automatically while still stopping between phases.
+
 ## Conventions
 
 - Engine functions are pure: `(drinks, currentTime, settings) => result`

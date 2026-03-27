@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { useCaffeineStore } from '../store/caffeine-store';
-import { generateStackedCurveData } from '../engine/caffeine';
+import { generateStackedCurveData, parseNextBedtime, getCaffeineLevel } from '../engine/caffeine';
 import { PROJECTION_STEP_MS } from '../engine/constants';
 import { getDrinkColor } from '../data/colors';
 import { getEffectiveHalfLife } from '../engine/metabolism';
@@ -66,7 +66,11 @@ function StackedTooltip({ active, payload, label, drinks }: StackedTooltipProps)
  * - 48h window: ~24h past + ~24h future centered on now (D-02)
  * - Vertical dashed "Now" line separating past from projected (D-03)
  * - Horizontal dashed sleep threshold line at configured mg (D-04 / VIZ-03)
+ * - Vertical dashed indigo bedtime line with projected mg label (BED-02)
  * - Custom tooltip showing per-drink breakdown on hover (D-06)
+ *
+ * Visual layering (back to front): grid, threshold, bedtime line, "Now" line, drink areas.
+ * Bedtime line only renders when targetBedtime is set (not null).
  *
  * Data is recomputed every 30 seconds via useCurrentTime hook.
  * Parent div has responsive height: h-[220px] on mobile, sm:h-[300px] on desktop (Recharts Pitfall 1).
@@ -77,6 +81,15 @@ export function DecayCurveChart() {
   const drinks = useCaffeineStore((s) => s.drinks);
   const settings = useCaffeineStore((s) => s.settings);
   const effectiveHalfLife = getEffectiveHalfLife(settings);
+
+  // BED-02: Bedtime projection for chart marker (D-05, D-06, D-07)
+  const bedtimeStr = settings.targetBedtime;
+  const targetBedtimeMs = bedtimeStr !== null
+    ? parseNextBedtime(bedtimeStr, now)
+    : null;
+  const bedtimeMg = targetBedtimeMs !== null
+    ? getCaffeineLevel(drinks, targetBedtimeMs, effectiveHalfLife)
+    : 0;
 
   // 48h window centered on now (~24h past + ~24h future)
   const windowMs = 24 * 60 * 60 * 1000;
@@ -140,6 +153,20 @@ export function DecayCurveChart() {
               strokeDasharray="5 5"
               label={{ value: `${settings.thresholdMg} mg`, position: 'right', fill: '#f59e0b', fontSize: 12 }}
             />
+            {/* BED-02: Vertical bedtime line with mg label */}
+            {targetBedtimeMs !== null && (
+              <ReferenceLine
+                x={targetBedtimeMs}
+                stroke="#818cf8"
+                strokeDasharray="6 4"
+                label={{
+                  value: `${Math.round(bedtimeMg)}mg`,
+                  position: 'insideTopRight',
+                  fill: '#818cf8',
+                  fontSize: 12,
+                }}
+              />
+            )}
             {/* D-03: Vertical "Now" line */}
             <ReferenceLine
               x={now}

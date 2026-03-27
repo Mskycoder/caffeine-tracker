@@ -234,4 +234,62 @@ describe('CaffeineStatus', () => {
     expect(badge).toBeInTheDocument();
     expect(badge.textContent).toMatch(/Half-life: \d+\.\dhr/);
   });
+
+  // --- Bedtime mg text tests (BED-01) ---
+
+  it('shows 0mg at bedtime when clear to sleep', () => {
+    // Default: no drinks, bedtime '00:00' -> already clear
+    render(<CaffeineStatus />);
+    const bedtimeText = screen.getByText(/0mg at bedtime/);
+    expect(bedtimeText).toBeInTheDocument();
+    expect(bedtimeText.closest('p')!.className).toContain('text-gray-400');
+  });
+
+  it('shows bedtime mg when on track for bedtime', () => {
+    // 200mg drink 1 hour ago, bedtime '00:00' (12h away) -> on track, some mg remain at bedtime
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-bed-ontrack',
+        name: 'Espresso',
+        caffeineMg: 200,
+        timestamp: FIXED_NOW - 3_600_000,
+        presetId: 'espresso',
+      }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+    });
+
+    render(<CaffeineStatus />);
+    const bedtimeText = screen.getByText(/\d+mg at bedtime/);
+    expect(bedtimeText).toBeInTheDocument();
+    expect(bedtimeText.closest('p')!.className).toContain('text-gray-400');
+  });
+
+  it('shows bedtime mg in amber when won\'t clear before bedtime', () => {
+    // 500mg drink 1 hour ago, bedtime '14:00' (2h away) -> won't clear
+    useCaffeineStore.setState({
+      drinks: [{
+        id: 'test-bed-wontclear',
+        name: 'Energy Drink',
+        caffeineMg: 500,
+        timestamp: FIXED_NOW - 3_600_000,
+        presetId: null,
+      }],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+    });
+
+    render(<CaffeineStatus />);
+    const bedtimeText = screen.getByText(/\d+mg at bedtime/);
+    expect(bedtimeText).toBeInTheDocument();
+    expect(bedtimeText.closest('p')!.className).toContain('text-amber-600');
+  });
+
+  it('does not show bedtime mg when targetBedtime is null', () => {
+    useCaffeineStore.setState({
+      drinks: [],
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
+    });
+
+    render(<CaffeineStatus />);
+    expect(screen.queryByText(/mg at bedtime/)).toBeNull();
+  });
 });

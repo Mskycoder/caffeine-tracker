@@ -7,7 +7,7 @@ import { getEffectiveHalfLife } from '../engine/metabolism';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 /**
- * Hero status display showing the four most important values:
+ * Hero status display showing the five most important values:
  * 1. Current estimated caffeine level (mg) -- large bold number
  * 2. Sleep-ready time estimate -- contextualized against bedtime:
  *    - "You're clear to sleep" when already below threshold
@@ -16,6 +16,10 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
  * 3. Caffeine curfew -- "Last call for caffeine: X:XX AM/PM", or contextual past-curfew
  *    messages that pair coherently with the sleep estimate
  * 4. Daily caffeine total -- "Today: Xmg / 400mg" with green-to-red color gradient
+ * 5. Bedtime caffeine projection -- "{N}mg at bedtime" below sleep estimate:
+ *    - Gray (text-gray-400) when clear or on track
+ *    - Amber (text-amber-600) when won't clear before bedtime
+ *    - Hidden when targetBedtime is null
  *
  * The sleep estimate and curfew messages are designed to tell a coherent story together.
  * When the user is on track for bedtime, both messages are reassuring. When not, both warn.
@@ -42,6 +46,10 @@ export function CaffeineStatus() {
     drinks, targetBedtimeMs, now, effectiveHalfLife, settings.thresholdMg
   );
 
+  // BED-01: Projected caffeine at bedtime
+  const bedtimeMg = getCaffeineLevel(drinks, targetBedtimeMs, effectiveHalfLife);
+  const bedtimeMgAmber = sleepTime !== null && sleepTime > targetBedtimeMs;
+
   const dailyTotal = getDailyTotal(drinks, now);
 
   // Determine if user will be below threshold before bedtime.
@@ -58,18 +66,39 @@ export function CaffeineStatus() {
       </p>
       <div className="mt-3 text-base text-gray-600">
         {sleepTime === null ? (
-          <p className="text-green-600 font-medium">You're clear to sleep</p>
+          <>
+            <p className="text-green-600 font-medium">You're clear to sleep</p>
+            {settings.targetBedtime !== null && (
+              <p className={`text-sm mt-1 ${bedtimeMgAmber ? 'text-amber-600' : 'text-gray-400'}`}>
+                {Math.round(bedtimeMg)}mg at bedtime
+              </p>
+            )}
+          </>
         ) : sleepTime <= targetBedtimeMs ? (
-          <p className="text-green-600 font-medium">
-            On track for your{' '}
-            <span className="font-semibold">{format(new Date(targetBedtimeMs), 'h:mm a')}</span>
-            {' '}bedtime
-          </p>
+          <>
+            <p className="text-green-600 font-medium">
+              On track for your{' '}
+              <span className="font-semibold">{format(new Date(targetBedtimeMs), 'h:mm a')}</span>
+              {' '}bedtime
+            </p>
+            {settings.targetBedtime !== null && (
+              <p className={`text-sm mt-1 ${bedtimeMgAmber ? 'text-amber-600' : 'text-gray-400'}`}>
+                {Math.round(bedtimeMg)}mg at bedtime
+              </p>
+            )}
+          </>
         ) : (
-          <p className="text-amber-600">
-            Won't be clear until{' '}
-            <span className="font-semibold">{format(new Date(sleepTime), 'h:mm a')}</span>
-          </p>
+          <>
+            <p className="text-amber-600">
+              Won't be clear until{' '}
+              <span className="font-semibold">{format(new Date(sleepTime), 'h:mm a')}</span>
+            </p>
+            {settings.targetBedtime !== null && (
+              <p className={`text-sm mt-1 ${bedtimeMgAmber ? 'text-amber-600' : 'text-gray-400'}`}>
+                {Math.round(bedtimeMg)}mg at bedtime
+              </p>
+            )}
+          </>
         )}
       </div>
       <div className="mt-2 text-sm text-gray-500">
