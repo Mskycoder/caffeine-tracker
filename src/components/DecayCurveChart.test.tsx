@@ -5,6 +5,13 @@ import { useCaffeineStore } from '../store/caffeine-store';
 import * as caffeineEngine from '../engine/caffeine';
 import type { ReactNode } from 'react';
 
+const defaultCovariates = {
+  weight: 70, weightUnit: 'kg' as const, sex: 'male' as const,
+  smoking: false, oralContraceptives: false, pregnancyTrimester: 'none' as const,
+  liverDisease: 'none' as const, cyp1a2Genotype: 'unknown' as const,
+  cyp1a2Inhibitor: 'none' as const,
+};
+
 // Fixed "now" for deterministic tests: 2024-06-15 12:00:00 UTC
 const FIXED_NOW = new Date('2024-06-15T12:00:00Z').getTime();
 
@@ -30,7 +37,7 @@ describe('DecayCurveChart', () => {
   beforeEach(() => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
     });
   });
 

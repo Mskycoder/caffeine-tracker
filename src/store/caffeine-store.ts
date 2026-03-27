@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { DrinkEntry, Settings, CustomPreset } from '../engine/types';
+import { DEFAULT_COVARIATES } from '../engine/types';
 
 /**
  * Caffeine store state shape.
@@ -9,7 +10,7 @@ import type { DrinkEntry, Settings, CustomPreset } from '../engine/types';
  * Actions: CRUD for drinks, CRUD for custom presets, partial update for settings.
  *
  * Persisted to localStorage via Zustand persist middleware (TECH-01).
- * Schema version 3. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets).
+ * Schema version 4. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates).
  */
 interface CaffeineState {
   drinks: DrinkEntry[];
@@ -33,6 +34,8 @@ export const useCaffeineStore = create<CaffeineState>()(
         halfLifeHours: 5,
         thresholdMg: 50,
         targetBedtime: '00:00',
+        metabolismMode: 'simple' as const,
+        covariates: { ...DEFAULT_COVARIATES },
       },
       customPresets: [],
 
@@ -82,7 +85,7 @@ export const useCaffeineStore = create<CaffeineState>()(
     }),
     {
       name: 'caffeine-tracker-storage',
-      version: 3,
+      version: 4,
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>;
         if (version < 2) {
@@ -97,7 +100,37 @@ export const useCaffeineStore = create<CaffeineState>()(
           // v2 -> v3: add customPresets array (Phase 10)
           state.customPresets = (state as Record<string, unknown>).customPresets ?? [];
         }
+        if (version < 4) {
+          // v3 -> v4: add advanced metabolism fields (Phase 12)
+          const settings = state.settings as Record<string, unknown>;
+          state.settings = {
+            ...settings,
+            metabolismMode: settings.metabolismMode ?? 'simple',
+            covariates: settings.covariates ?? {
+              weight: 70,
+              weightUnit: 'kg',
+              sex: 'male',
+              smoking: false,
+              oralContraceptives: false,
+              pregnancyTrimester: 'none',
+              liverDisease: 'none',
+              cyp1a2Genotype: 'unknown',
+              cyp1a2Inhibitor: 'none',
+            },
+          };
+        }
         return state as unknown as CaffeineState;
+      },
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<CaffeineState> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          settings: {
+            ...currentState.settings,
+            ...(persisted?.settings ?? {}),
+          },
+        };
       },
     },
   ),

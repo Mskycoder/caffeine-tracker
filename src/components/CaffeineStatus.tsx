@@ -3,6 +3,7 @@ import { useCaffeineStore } from '../store/caffeine-store';
 import { getCaffeineLevel, getSleepReadyTime, getCaffeineCurfew, parseNextBedtime, getDailyTotal } from '../engine/caffeine';
 import { dailyTotalColor } from '../data/colors';
 import { FDA_DAILY_LIMIT_MG } from '../engine/constants';
+import { getEffectiveHalfLife } from '../engine/metabolism';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 /**
@@ -27,17 +28,18 @@ export function CaffeineStatus() {
   const now = useCurrentTime();
   const drinks = useCaffeineStore((s) => s.drinks);
   const settings = useCaffeineStore((s) => s.settings);
+  const effectiveHalfLife = getEffectiveHalfLife(settings);
 
-  const currentMg = getCaffeineLevel(drinks, now, settings.halfLifeHours);
+  const currentMg = getCaffeineLevel(drinks, now, effectiveHalfLife);
   const sleepTime = getSleepReadyTime(
-    drinks, now, settings.halfLifeHours, settings.thresholdMg
+    drinks, now, effectiveHalfLife, settings.thresholdMg
   );
 
   // Compute curfew (per D-03, D-04: always show, default bedtime is '00:00')
   const bedtimeStr = settings.targetBedtime ?? '00:00';
   const targetBedtimeMs = parseNextBedtime(bedtimeStr, now);
   const curfewResult = getCaffeineCurfew(
-    drinks, targetBedtimeMs, now, settings.halfLifeHours, settings.thresholdMg
+    drinks, targetBedtimeMs, now, effectiveHalfLife, settings.thresholdMg
   );
 
   const dailyTotal = getDailyTotal(drinks, now);
@@ -95,6 +97,11 @@ export function CaffeineStatus() {
           </p>
         )}
       </div>
+      <p className="mt-2 text-sm font-medium text-gray-500">
+        Half-life: {settings.metabolismMode === 'advanced'
+          ? `${effectiveHalfLife.toFixed(1)}hr`
+          : `${effectiveHalfLife}hr`}
+      </p>
       <div className="mt-3 pt-3 border-t border-gray-100 text-sm">
         <p style={{ color: dailyTotalColor(dailyTotal, FDA_DAILY_LIMIT_MG) }} className="font-semibold">
           Today: {Math.round(dailyTotal)}mg{' '}

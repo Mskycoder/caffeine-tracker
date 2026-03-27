@@ -6,6 +6,13 @@ import { useCaffeineStore } from '../store/caffeine-store';
 // Fixed "now" for deterministic tests: 2024-06-15 12:00:00 UTC
 const FIXED_NOW = new Date('2024-06-15T12:00:00Z').getTime();
 
+const defaultCovariates = {
+  weight: 70, weightUnit: 'kg' as const, sex: 'male' as const,
+  smoking: false, oralContraceptives: false, pregnancyTrimester: 'none' as const,
+  liverDisease: 'none' as const, cyp1a2Genotype: 'unknown' as const,
+  cyp1a2Inhibitor: 'none' as const,
+};
+
 vi.mock('../hooks/useCurrentTime', () => ({
   useCurrentTime: () => FIXED_NOW,
 }));
@@ -15,7 +22,10 @@ describe('CaffeineStatus', () => {
     // Reset store to defaults before each test
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+      settings: {
+        halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
+        metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
+      },
     });
   });
 
@@ -76,7 +86,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00' },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
     });
 
     render(<CaffeineStatus />);
@@ -125,7 +135,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 6 * 3_600_000, // 6 hours ago
         presetId: 'tea',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
     });
 
     render(<CaffeineStatus />);
@@ -142,7 +152,7 @@ describe('CaffeineStatus', () => {
         timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
     });
 
     render(<CaffeineStatus />);
@@ -153,7 +163,7 @@ describe('CaffeineStatus', () => {
     // No drinks -- full budget available, should show a curfew time
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:00' },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates } },
     });
 
     render(<CaffeineStatus />);
@@ -201,5 +211,27 @@ describe('CaffeineStatus', () => {
     const todayEl = screen.getByText(/Today:/).closest('p')!;
     // dailyTotalColor returns an hsl() string -- verify inline style is applied
     expect(todayEl.getAttribute('style')).toMatch(/color:\s*hsl\(/);
+  });
+
+  it('shows half-life badge with integer in simple mode', () => {
+    render(<CaffeineStatus />);
+    expect(screen.getByText(/Half-life: 5hr/)).toBeInTheDocument();
+  });
+
+  it('shows half-life badge with decimal in advanced mode', () => {
+    useCaffeineStore.setState({
+      drinks: [],
+      settings: {
+        halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
+        metabolismMode: 'advanced' as const,
+        covariates: { ...defaultCovariates, sex: 'female' as const },
+      },
+    });
+
+    render(<CaffeineStatus />);
+    // Female covariate changes half-life; badge should show decimal format
+    const badge = screen.getByText(/Half-life:/);
+    expect(badge).toBeInTheDocument();
+    expect(badge.textContent).toMatch(/Half-life: \d+\.\dhr/);
   });
 });

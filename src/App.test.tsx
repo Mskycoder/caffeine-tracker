@@ -34,7 +34,18 @@ function renderAt(path: string) {
 beforeEach(() => {
   useCaffeineStore.setState({
     drinks: [],
-    settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
+    settings: {
+      halfLifeHours: 5,
+      thresholdMg: 50,
+      targetBedtime: null,
+      metabolismMode: 'simple' as const,
+      covariates: {
+        weight: 70, weightUnit: 'kg' as const, sex: 'male' as const,
+        smoking: false, oralContraceptives: false, pregnancyTrimester: 'none' as const,
+        liverDisease: 'none' as const, cyp1a2Genotype: 'unknown' as const,
+        cyp1a2Inhibitor: 'none' as const,
+      },
+    },
   });
 });
 

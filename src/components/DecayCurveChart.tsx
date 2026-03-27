@@ -8,6 +8,7 @@ import { useCaffeineStore } from '../store/caffeine-store';
 import { generateStackedCurveData } from '../engine/caffeine';
 import { PROJECTION_STEP_MS } from '../engine/constants';
 import { getDrinkColor } from '../data/colors';
+import { getEffectiveHalfLife } from '../engine/metabolism';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 import type { DrinkEntry } from '../engine/types';
 
@@ -75,6 +76,7 @@ export function DecayCurveChart() {
   const now = useCurrentTime();
   const drinks = useCaffeineStore((s) => s.drinks);
   const settings = useCaffeineStore((s) => s.settings);
+  const effectiveHalfLife = getEffectiveHalfLife(settings);
 
   // 48h window centered on now (~24h past + ~24h future)
   const windowMs = 24 * 60 * 60 * 1000;
@@ -82,7 +84,7 @@ export function DecayCurveChart() {
   const endTime = now + windowMs;
 
   const stackedData = generateStackedCurveData(
-    drinks, startTime, endTime, PROJECTION_STEP_MS, settings.halfLifeHours
+    drinks, startTime, endTime, PROJECTION_STEP_MS, effectiveHalfLife
   );
 
   // Extract active drink IDs sorted chronologically (earliest at bottom of stack)

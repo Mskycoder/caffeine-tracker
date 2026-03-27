@@ -5,6 +5,13 @@ const DEFAULT_SETTINGS = {
   halfLifeHours: 5,
   thresholdMg: 50,
   targetBedtime: '00:00',
+  metabolismMode: 'simple' as const,
+  covariates: {
+    weight: 70, weightUnit: 'kg' as const, sex: 'male' as const,
+    smoking: false, oralContraceptives: false, pregnancyTrimester: 'none' as const,
+    liverDisease: 'none' as const, cyp1a2Genotype: 'unknown' as const,
+    cyp1a2Inhibitor: 'none' as const,
+  },
 };
 
 beforeEach(() => {
@@ -29,6 +36,8 @@ describe('initial state', () => {
     expect(settings.halfLifeHours).toBe(5);
     expect(settings.thresholdMg).toBe(50);
     expect(settings.targetBedtime).toBe('00:00');
+    expect(settings.metabolismMode).toBe('simple');
+    expect(settings.covariates).toEqual(DEFAULT_SETTINGS.covariates);
   });
 
   it('customPresets is an empty array', () => {
@@ -191,9 +200,9 @@ describe('persist config', () => {
     expect(options.name).toBe('caffeine-tracker-storage');
   });
 
-  it('version is 3', () => {
+  it('version is 4', () => {
     const options = useCaffeineStore.persist.getOptions();
-    expect(options.version).toBe(3);
+    expect(options.version).toBe(4);
   });
 });
 
@@ -236,7 +245,7 @@ describe('migration', () => {
     expect(migrated.settings.targetBedtime).toBe('23:00');
   });
 
-  it('migrates v1 state to v3 (chained): targetBedtime null becomes "00:00" AND customPresets added', () => {
+  it('migrates v1 state to v4 (chained): targetBedtime, customPresets, metabolismMode, covariates', () => {
     const v1State = {
       drinks: [{ id: 'old-1', name: 'Tea', caffeineMg: 47, timestamp: 2000, presetId: null }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null },
@@ -245,18 +254,41 @@ describe('migration', () => {
     const migrated = options.migrate!(v1State, 1) as CaffeineState;
     expect(migrated.settings.targetBedtime).toBe('00:00');
     expect(migrated.customPresets).toEqual([]);
+    expect(migrated.settings.metabolismMode).toBe('simple');
+    expect(migrated.settings.covariates).toEqual(DEFAULT_SETTINGS.covariates);
     expect(migrated.drinks).toHaveLength(1);
   });
 
-  it('returns v3 state unchanged', () => {
+  it('migrates v3 state to v4 adding metabolismMode and covariates', () => {
     const v3State = {
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00' },
+      customPresets: [{ id: 'custom-1', name: 'Mocha', caffeineMg: 120 }],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const migrated = options.migrate!(v3State, 3) as CaffeineState;
+    expect(migrated.settings.metabolismMode).toBe('simple');
+    expect(migrated.settings.covariates).toEqual({
+      weight: 70, weightUnit: 'kg', sex: 'male',
+      smoking: false, oralContraceptives: false, pregnancyTrimester: 'none',
+      liverDisease: 'none', cyp1a2Genotype: 'unknown', cyp1a2Inhibitor: 'none',
+    });
+    // Existing settings preserved
+    expect(migrated.settings.halfLifeHours).toBe(5);
+    expect(migrated.settings.targetBedtime).toBe('23:00');
+    expect(migrated.customPresets).toHaveLength(1);
+  });
+
+  it('returns v4 state unchanged', () => {
+    const v4State = {
+      drinks: [],
+      settings: { ...DEFAULT_SETTINGS },
       customPresets: [{ id: 'custom-abc', name: 'My Drink', caffeineMg: 100 }],
     };
     const options = useCaffeineStore.persist.getOptions();
-    const result = options.migrate!(v3State, 3) as CaffeineState;
+    const result = options.migrate!(v4State, 4) as CaffeineState;
     expect(result.settings.targetBedtime).toBe('00:00');
+    expect(result.settings.metabolismMode).toBe('simple');
     expect(result.customPresets).toHaveLength(1);
     expect(result.customPresets[0].name).toBe('My Drink');
   });

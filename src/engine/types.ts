@@ -1,3 +1,32 @@
+/** Metabolism calculation mode: simple (manual preset) or advanced (covariate-based). */
+export type MetabolismMode = 'simple' | 'advanced';
+
+/** User health/lifestyle covariates for population PK half-life computation. */
+export interface CovariateSettings {
+  weight: number;           // in current unit (kg or lbs)
+  weightUnit: 'kg' | 'lbs';
+  sex: 'male' | 'female';
+  smoking: boolean;
+  oralContraceptives: boolean;
+  pregnancyTrimester: 'none' | 'first' | 'second' | 'third';
+  liverDisease: 'none' | 'mild' | 'moderate';
+  cyp1a2Genotype: 'unknown' | 'fast' | 'normal' | 'slow';
+  cyp1a2Inhibitor: 'none' | 'fluvoxamine' | 'ciprofloxacin' | 'other_moderate';
+}
+
+/** Default covariate values: 70kg male with no conditions. */
+export const DEFAULT_COVARIATES: CovariateSettings = {
+  weight: 70,
+  weightUnit: 'kg',
+  sex: 'male',
+  smoking: false,
+  oralContraceptives: false,
+  pregnancyTrimester: 'none',
+  liverDisease: 'none',
+  cyp1a2Genotype: 'unknown',
+  cyp1a2Inhibitor: 'none',
+};
+
 /** A single logged caffeine drink. Per D-01. */
 export interface DrinkEntry {
   id: string;                  // crypto.randomUUID()
@@ -12,6 +41,8 @@ export interface Settings {
   halfLifeHours: number;         // default 5.0
   thresholdMg: number;           // default 50
   targetBedtime: string | null;  // HH:mm format or null
+  metabolismMode: MetabolismMode;  // 'simple' (default) or 'advanced'
+  covariates: CovariateSettings;   // health factors for advanced mode
 }
 
 /** A user-created custom drink preset (Phase 10). Per D-06. */

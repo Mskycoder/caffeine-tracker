@@ -2,12 +2,21 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SettingsPanel } from './SettingsPanel';
 import { useCaffeineStore } from '../store/caffeine-store';
+import { DEFAULT_COVARIATES } from '../engine/types';
+
+const defaultSettings = {
+  halfLifeHours: 5,
+  thresholdMg: 50,
+  targetBedtime: '00:00',
+  metabolismMode: 'simple' as const,
+  covariates: { ...DEFAULT_COVARIATES },
+};
 
 describe('SettingsPanel', () => {
   beforeEach(() => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00' },
+      settings: { ...defaultSettings },
     });
   });
 
@@ -86,6 +95,55 @@ describe('SettingsPanel', () => {
       render(<SettingsPanel />);
       const input = screen.getByLabelText(/target bedtime/i);
       expect(input.className).toContain('min-h-[44px]');
+    });
+  });
+
+  describe('mode toggle', () => {
+    it('renders "Use advanced settings" link in simple mode', () => {
+      render(<SettingsPanel />);
+      expect(screen.getByText('Use advanced settings')).toBeInTheDocument();
+      expect(screen.queryByText('Use simple settings')).not.toBeInTheDocument();
+    });
+
+    it('clicking "Use advanced settings" switches to advanced mode', () => {
+      render(<SettingsPanel />);
+      fireEvent.click(screen.getByText('Use advanced settings'));
+      expect(useCaffeineStore.getState().settings.metabolismMode).toBe('advanced');
+    });
+
+    it('renders CovariateForm and "Use simple settings" in advanced mode', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, metabolismMode: 'advanced' },
+      });
+      render(<SettingsPanel />);
+      expect(screen.getByText('Use simple settings')).toBeInTheDocument();
+      expect(screen.getByText('Demographics')).toBeInTheDocument();
+      expect(screen.getByText('Lifestyle')).toBeInTheDocument();
+      expect(screen.getByText('Clinical')).toBeInTheDocument();
+    });
+
+    it('shows computed half-life in advanced mode', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, metabolismMode: 'advanced' },
+      });
+      render(<SettingsPanel />);
+      expect(screen.getByText('Computed half-life:')).toBeInTheDocument();
+      expect(screen.getByText('5.0 hours')).toBeInTheDocument();
+    });
+
+    it('clicking "Use simple settings" preserves covariates per D-02', () => {
+      useCaffeineStore.setState({
+        settings: {
+          ...defaultSettings,
+          metabolismMode: 'advanced',
+          covariates: { ...defaultSettings.covariates, smoking: true },
+        },
+      });
+      render(<SettingsPanel />);
+      fireEvent.click(screen.getByText('Use simple settings'));
+      const state = useCaffeineStore.getState();
+      expect(state.settings.metabolismMode).toBe('simple');
+      expect(state.settings.covariates.smoking).toBe(true); // preserved
     });
   });
 });
