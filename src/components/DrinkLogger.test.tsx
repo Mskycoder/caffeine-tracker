@@ -4,10 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { useCaffeineStore } from '../store/caffeine-store';
 import { DrinkLogger } from './DrinkLogger';
 
+import { DEFAULT_COVARIATES } from '../engine/types';
+
 const DEFAULT_SETTINGS = {
   halfLifeHours: 5,
   thresholdMg: 50,
   targetBedtime: null,
+  metabolismMode: 'simple' as const,
+  covariates: { ...DEFAULT_COVARIATES },
 };
 
 beforeEach(() => {

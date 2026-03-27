@@ -4,10 +4,14 @@ import { vi } from 'vitest';
 import { useCaffeineStore } from '../store/caffeine-store';
 import { DrinkPresets } from './DrinkPresets';
 
+import { DEFAULT_COVARIATES } from '../engine/types';
+
 const DEFAULT_SETTINGS = {
   halfLifeHours: 5,
   thresholdMg: 50,
   targetBedtime: null,
+  metabolismMode: 'simple' as const,
+  covariates: { ...DEFAULT_COVARIATES },
 };
 
 const FIXED_TIMESTAMP = 1711382400000;
