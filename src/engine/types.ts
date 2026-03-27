@@ -14,12 +14,6 @@ export interface Settings {
   targetBedtime: string | null;  // HH:mm format or null
 }
 
-/** A single point on the total caffeine curve (for charting). */
-export interface CurvePoint {
-  time: number;   // epoch ms
-  mg: number;     // total caffeine at this time
-}
-
 /**
  * Discriminated result from getCaffeineCurfew.
  *

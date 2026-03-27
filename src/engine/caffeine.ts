@@ -6,7 +6,7 @@ import {
   PROJECTION_STEP_MS,
   NEGLIGIBLE_MG,
 } from './constants';
-import type { DrinkEntry, CurvePoint, DrinkCurvePoint, CurfewResult } from './types';
+import type { DrinkEntry, DrinkCurvePoint, CurfewResult } from './types';
 
 /**
  * Parse "HH:mm" bedtime string into the next occurrence as epoch ms.
@@ -167,51 +167,6 @@ export function getSleepReadyTime(
   }
 
   return maxTime; // fallback: more than 48 hours away
-}
-
-/**
- * Generate time-series data for charting the caffeine decay curve.
- * Returns an array of CurvePoint objects from startTime to endTime
- * at the given step interval.
- */
-export function generateCurveData(
-  drinks: DrinkEntry[],
-  startTime: number,
-  endTime: number,
-  stepMs: number,
-  halfLifeHours: number,
-  ka: number = DEFAULT_KA,
-): CurvePoint[] {
-  const points: CurvePoint[] = [];
-
-  for (let t = startTime; t <= endTime; t += stepMs) {
-    points.push({
-      time: t,
-      mg: getCaffeineLevel(drinks, t, halfLifeHours, ka),
-    });
-  }
-
-  return points;
-}
-
-/**
- * Per-drink caffeine contribution breakdown at a given time.
- * Returns an object mapping each drink.id to its individual
- * caffeine level (mg). Sum of all values equals getCaffeineLevel total.
- */
-export function getDrinkContributions(
-  drinks: DrinkEntry[],
-  atTime: number,
-  halfLifeHours: number,
-  ka: number = DEFAULT_KA,
-): Record<string, number> {
-  const contributions: Record<string, number> = {};
-
-  for (const drink of drinks) {
-    contributions[drink.id] = singleDrinkLevel(drink, atTime, halfLifeHours, ka);
-  }
-
-  return contributions;
 }
 
 /**

@@ -28,7 +28,7 @@
 
 - **Engine** (`src/engine/`): Pure functions for pharmacokinetic calculations. No side effects, no `Date.now()` — time is always passed as an argument.
 - **Store** (`src/store/`): Zustand store with `persist` middleware. Shape: `{ drinks: DrinkEntry[], settings: Settings, ...actions }`.
-- **Types** (`src/engine/types.ts`): `DrinkEntry` (id, name, caffeineMg, timestamp, presetId), `Settings` (halfLifeHours, thresholdMg, targetBedtime), `CurvePoint`, `DrinkCurvePoint`.
+- **Types** (`src/engine/types.ts`): `DrinkEntry` (id, name, caffeineMg, timestamp, presetId), `Settings` (halfLifeHours, thresholdMg, targetBedtime), `CurfewResult`, `DrinkCurvePoint`.
 - **Constants** (`src/engine/constants.ts`): `DEFAULT_KA = 4.6`, `BIOAVAILABILITY = 0.99`, default half-life 5hr, threshold 50mg.
 - **Data** (`src/data/`): `presets.ts` (drink preset definitions), `colors.ts` (preset color map, hash function for custom drinks, daily total gradient).
 - **Components** (`src/components/`): `CaffeineStatus` (hero: current mg + sleep estimate + caffeine curfew + daily total indicator), `DecayCurveChart` (Recharts stacked AreaChart with per-drink colored layers and 48h responsive-height decay curve), `DrinkHistory` (today's drinks list), `DrinkLoggerModal` (FAB + native dialog modal wrapping DrinkLogger), `DrinkLogger` (preset + custom drink entry, rendered inside modal), `DrinkPresets`, `CustomDrinkForm`, `SettingsPanel` (collapsible: metabolism selector, threshold input, bedtime picker), `Header`.

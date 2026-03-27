@@ -2,8 +2,6 @@ import {
   singleDrinkLevel,
   getCaffeineLevel,
   getSleepReadyTime,
-  generateCurveData,
-  getDrinkContributions,
   parseNextBedtime,
   getCaffeineCurfew,
   generateStackedCurveData,
@@ -192,85 +190,6 @@ describe('getSleepReadyTime', () => {
     // Should hit the 48-hour fallback
     const maxTime = fromTime + 48 * 3_600_000;
     expect(result).toBe(maxTime);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// generateCurveData
-// ---------------------------------------------------------------------------
-describe('generateCurveData', () => {
-  it('returns array of CurvePoint objects from startTime to endTime', () => {
-    const drink = makeDrink();
-    const startTime = BASE_TIME;
-    const endTime = BASE_TIME + 2 * 3_600_000;
-    const stepMs = 30 * 60_000; // 30 min steps
-
-    const data = generateCurveData([drink], startTime, endTime, stepMs, 5);
-
-    expect(data.length).toBeGreaterThan(0);
-    expect(data[0].time).toBe(startTime);
-    expect(data[data.length - 1].time).toBeLessThanOrEqual(endTime);
-  });
-
-  it('first point time equals startTime, last point time <= endTime', () => {
-    const drink = makeDrink();
-    const startTime = BASE_TIME;
-    const endTime = BASE_TIME + 3_600_000;
-    const stepMs = 10 * 60_000;
-
-    const data = generateCurveData([drink], startTime, endTime, stepMs, 5);
-
-    expect(data[0].time).toBe(startTime);
-    expect(data[data.length - 1].time).toBeLessThanOrEqual(endTime);
-  });
-
-  it('each point mg value matches getCaffeineLevel at that time', () => {
-    const drink = makeDrink();
-    const startTime = BASE_TIME;
-    const endTime = BASE_TIME + 2 * 3_600_000;
-    const stepMs = 30 * 60_000;
-
-    const data = generateCurveData([drink], startTime, endTime, stepMs, 5);
-
-    for (const point of data) {
-      const expected = getCaffeineLevel([drink], point.time, 5);
-      expect(point.mg).toBeCloseTo(expected, 10);
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getDrinkContributions
-// ---------------------------------------------------------------------------
-describe('getDrinkContributions', () => {
-  it('returns empty object for empty drinks array', () => {
-    const result = getDrinkContributions([], BASE_TIME, 5);
-    expect(result).toEqual({});
-  });
-
-  it('returns object with drink IDs as keys and caffeine contribution as values', () => {
-    const drink1 = makeDrink({ id: 'd1', caffeineMg: 95 });
-    const drink2 = makeDrink({ id: 'd2', caffeineMg: 150, timestamp: BASE_TIME + 3_600_000 });
-    const atTime = BASE_TIME + 2 * 3_600_000;
-
-    const contributions = getDrinkContributions([drink1, drink2], atTime, 5);
-
-    expect(contributions).toHaveProperty('d1');
-    expect(contributions).toHaveProperty('d2');
-    expect(contributions.d1).toBeGreaterThan(0);
-    expect(contributions.d2).toBeGreaterThan(0);
-  });
-
-  it('sum of all contributions equals getCaffeineLevel total', () => {
-    const drink1 = makeDrink({ id: 'd1', caffeineMg: 95 });
-    const drink2 = makeDrink({ id: 'd2', caffeineMg: 150, timestamp: BASE_TIME + 3_600_000 });
-    const atTime = BASE_TIME + 2 * 3_600_000;
-
-    const contributions = getDrinkContributions([drink1, drink2], atTime, 5);
-    const total = getCaffeineLevel([drink1, drink2], atTime, 5);
-    const sumContribs = Object.values(contributions).reduce((sum, v) => sum + v, 0);
-
-    expect(sumContribs).toBeCloseTo(total, 10);
   });
 });
 
