@@ -14,6 +14,8 @@ const DEFAULT_SETTINGS = {
   covariates: { ...DEFAULT_COVARIATES },
   hiddenPresetIds: [] as string[],
   showResearchThresholds: false,
+  caffeineSensitivity: 'normal' as const,
+  thresholdSource: 'manual' as const,
 };
 
 const FIXED_TIMESTAMP = 1711382400000;

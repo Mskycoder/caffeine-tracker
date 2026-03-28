@@ -47,6 +47,8 @@ beforeEach(() => {
       },
       hiddenPresetIds: [],
       showResearchThresholds: false,
+      caffeineSensitivity: 'normal' as const,
+      thresholdSource: 'manual' as const,
     },
   });
 });

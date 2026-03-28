@@ -1,6 +1,15 @@
 /** Metabolism calculation mode: simple (manual preset) or advanced (covariate-based). */
 export type MetabolismMode = 'simple' | 'advanced';
 
+/** Caffeine sensitivity level: affects personalized threshold multiplier (Phase 17). */
+export type CaffeineSensitivity = 'low' | 'normal' | 'high';
+
+/** Source for the effective sleep-ready threshold (Phase 17). */
+export type ThresholdSource = 'manual' | 'autonomic' | 'deep_sleep';
+
+/** Threshold zone for current caffeine level relative to personalized thresholds (Phase 17). */
+export type ThresholdZone = 'clear' | 'autonomic' | 'sleep_disruption';
+
 /** User health/lifestyle covariates for population PK half-life computation. */
 export interface CovariateSettings {
   weight: number;           // in current unit (kg or lbs)
@@ -45,6 +54,8 @@ export interface Settings {
   covariates: CovariateSettings;   // health factors for advanced mode
   hiddenPresetIds: string[];           // Phase 15: preset IDs hidden from quick-add
   showResearchThresholds: boolean;     // Phase 17 groundwork: research threshold toggle
+  caffeineSensitivity: CaffeineSensitivity;  // Phase 17: sensitivity multiplier for thresholds
+  thresholdSource: ThresholdSource;          // Phase 17: source for effective sleep threshold
 }
 
 /** Brew method identifiers for coffee calculator (Phase 16). */

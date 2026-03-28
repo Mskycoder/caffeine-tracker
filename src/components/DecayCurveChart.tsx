@@ -9,6 +9,7 @@ import { generateStackedCurveData, parseNextBedtime, getCaffeineLevel } from '..
 import { PROJECTION_STEP_MS } from '../engine/constants';
 import { getDrinkColor } from '../data/colors';
 import { getEffectiveHalfLife } from '../engine/metabolism';
+import { getPersonalizedThresholds, getEffectiveThreshold } from '../engine/thresholds';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 import type { DrinkEntry } from '../engine/types';
 
@@ -65,11 +66,12 @@ function StackedTooltip({ active, payload, label, drinks }: StackedTooltipProps)
  * - Stacked per-drink colored area chart (VIZ-05 / D-01)
  * - 48h window: ~24h past + ~24h future centered on now (D-02)
  * - Vertical dashed "Now" line separating past from projected (D-03)
- * - Horizontal dashed sleep threshold line at configured mg (D-04 / VIZ-03)
+ * - Horizontal dashed sleep threshold line at effective threshold mg (D-04 / VIZ-03 / D-10)
+ * - Conditional research threshold lines: green autonomic + red deep sleep (THRS-02)
  * - Vertical dashed indigo bedtime line with projected mg label (BED-02)
  * - Custom tooltip showing per-drink breakdown on hover (D-06)
  *
- * Visual layering (back to front): grid, threshold, bedtime line, "Now" line, drink areas.
+ * Visual layering (back to front): grid, threshold, research lines, bedtime line, "Now" line, drink areas.
  * Bedtime line only renders when targetBedtime is set (not null).
  *
  * Data is recomputed every 30 seconds via useCurrentTime hook.
@@ -146,13 +148,38 @@ export function DecayCurveChart() {
               width={40}
             />
             <Tooltip content={<StackedTooltip drinks={drinks} />} />
-            {/* VIZ-03: Sleep threshold reference line */}
-            <ReferenceLine
-              y={settings.thresholdMg}
-              stroke="#f59e0b"
-              strokeDasharray="5 5"
-              label={{ value: `${settings.thresholdMg} mg`, position: 'right', fill: '#f59e0b', fontSize: 12 }}
-            />
+            {/* VIZ-03: Sleep threshold reference line -- uses effective threshold (D-10) */}
+            {(() => {
+              const effectiveThreshold = getEffectiveThreshold(settings);
+              return (
+                <ReferenceLine
+                  y={effectiveThreshold}
+                  stroke="#f59e0b"
+                  strokeDasharray="5 5"
+                  label={{ value: `${Math.round(effectiveThreshold)} mg`, position: 'right', fill: '#f59e0b', fontSize: 12 }}
+                />
+              );
+            })()}
+            {/* THRS-02: Research threshold lines (gated by toggle) */}
+            {settings.showResearchThresholds && (() => {
+              const thresholds = getPersonalizedThresholds(settings);
+              return (
+                <>
+                  <ReferenceLine
+                    y={thresholds.autonomicMg}
+                    stroke="#16a34a"
+                    strokeDasharray="5 5"
+                    label={{ value: `Autonomic: ${Math.round(thresholds.autonomicMg)}mg`, position: 'right', fill: '#16a34a', fontSize: 12 }}
+                  />
+                  <ReferenceLine
+                    y={thresholds.deepSleepMg}
+                    stroke="#ef4444"
+                    strokeDasharray="5 5"
+                    label={{ value: `Deep sleep: ${Math.round(thresholds.deepSleepMg)}mg`, position: 'right', fill: '#ef4444', fontSize: 12 }}
+                  />
+                </>
+              );
+            })()}
             {/* BED-02: Vertical bedtime line with mg label */}
             {targetBedtimeMs !== null && (
               <ReferenceLine

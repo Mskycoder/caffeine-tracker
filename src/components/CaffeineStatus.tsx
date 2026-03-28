@@ -4,11 +4,14 @@ import { getCaffeineLevel, getSleepReadyTime, getCaffeineCurfew, parseNextBedtim
 import { dailyTotalColor } from '../data/colors';
 import { FDA_DAILY_LIMIT_MG } from '../engine/constants';
 import { getEffectiveHalfLife } from '../engine/metabolism';
+import { getPersonalizedThresholds, getThresholdZone, getEffectiveThreshold } from '../engine/thresholds';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 /**
- * Hero status display showing the five most important values:
+ * Hero status display showing the six most important values:
  * 1. Current estimated caffeine level (mg) -- large bold number
+ * 1b. Zone badge (when research thresholds enabled) -- colored dot + zone name
+ *     indicating clear/autonomic/sleep_disruption based on personalized thresholds
  * 2. Sleep-ready time estimate -- contextualized against bedtime:
  *    - "You're clear to sleep" when already below threshold
  *    - "On track for your X:XX AM bedtime" when will be clear before bedtime
@@ -26,6 +29,8 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
  *
  * Curfew is always visible since default bedtime is "00:00" (per D-04).
  * Refreshes automatically every 30 seconds via useCurrentTime hook.
+ * Sleep-ready time and curfew use getEffectiveThreshold (D-10) which resolves to
+ * manual threshold, autonomic, or deep-sleep research value based on thresholdSource.
  * All computation is derived from drink records + current time (no stored state).
  */
 export function CaffeineStatus() {
@@ -35,15 +40,16 @@ export function CaffeineStatus() {
   const effectiveHalfLife = getEffectiveHalfLife(settings);
 
   const currentMg = getCaffeineLevel(drinks, now, effectiveHalfLife);
+  const effectiveThreshold = getEffectiveThreshold(settings);
   const sleepTime = getSleepReadyTime(
-    drinks, now, effectiveHalfLife, settings.thresholdMg
+    drinks, now, effectiveHalfLife, effectiveThreshold
   );
 
   // Compute curfew (per D-03, D-04: always show, default bedtime is '00:00')
   const bedtimeStr = settings.targetBedtime ?? '00:00';
   const targetBedtimeMs = parseNextBedtime(bedtimeStr, now);
   const curfewResult = getCaffeineCurfew(
-    drinks, targetBedtimeMs, now, effectiveHalfLife, settings.thresholdMg
+    drinks, targetBedtimeMs, now, effectiveHalfLife, effectiveThreshold
   );
 
   // BED-01: Projected caffeine at bedtime
@@ -64,6 +70,21 @@ export function CaffeineStatus() {
       <p className="mt-1 text-5xl font-bold text-gray-900">
         {Math.round(currentMg)}<span className="text-2xl font-normal text-gray-400 ml-1">mg</span>
       </p>
+      {settings.showResearchThresholds && (() => {
+        const thresholds = getPersonalizedThresholds(settings);
+        const zone = getThresholdZone(currentMg, thresholds);
+        const zoneConfig = {
+          clear: { bg: 'bg-green-600', text: 'text-green-600', label: 'Clear zone' },
+          autonomic: { bg: 'bg-amber-600', text: 'text-amber-600', label: 'Autonomic effects' },
+          sleep_disruption: { bg: 'bg-red-500', text: 'text-red-500', label: 'Sleep disruption' },
+        }[zone];
+        return (
+          <div className="inline-flex items-center gap-2 mt-1">
+            <span className={`w-2 h-2 rounded-full ${zoneConfig.bg}`} />
+            <span className={`text-sm font-semibold ${zoneConfig.text}`}>{zoneConfig.label}</span>
+          </div>
+        );
+      })()}
       <div className="mt-3 text-base text-gray-600">
         {sleepTime === null ? (
           <>

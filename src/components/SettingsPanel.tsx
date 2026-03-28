@@ -1,7 +1,8 @@
 import { useCaffeineStore } from '../store/caffeine-store';
 import { computeHalfLife } from '../engine/metabolism';
+import { getEffectiveThreshold } from '../engine/thresholds';
 import { CovariateForm } from './CovariateForm';
-import type { CovariateSettings } from '../engine/types';
+import type { CovariateSettings, CaffeineSensitivity, ThresholdSource } from '../engine/types';
 
 /**
  * Metabolism speed presets mapping user-friendly labels to half-life values (per D-02).
@@ -13,6 +14,44 @@ const METABOLISM_PRESETS = [
   { label: 'Slow', halfLife: 7, description: '~7hr half-life' },
 ] as const;
 
+const SENSITIVITY_OPTIONS: readonly { label: string; value: CaffeineSensitivity; description: string }[] = [
+  { label: 'Low', value: 'low', description: 'Tolerant (+25%)' },
+  { label: 'Normal', value: 'normal', description: 'Baseline' },
+  { label: 'High', value: 'high', description: 'Sensitive (-25%)' },
+] as const;
+
+const THRESHOLD_SOURCE_OPTIONS: readonly { label: string; value: ThresholdSource }[] = [
+  { label: 'Manual', value: 'manual' },
+  { label: 'Autonomic', value: 'autonomic' },
+  { label: 'Deep Sleep', value: 'deep_sleep' },
+] as const;
+
+function ToggleSwitch({
+  label, checked, onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (val: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between min-h-[44px]">
+      <span className="text-sm text-gray-700">{label}</span>
+      <div className="relative">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className={`w-11 h-6 rounded-full peer-focus:ring-2 peer-focus:ring-blue-300 transition-colors ${
+          checked ? 'bg-blue-500' : 'bg-gray-200'
+        }`} />
+        <div className="absolute left-[2px] top-[2px] bg-white w-5 h-5 rounded-full transition-transform peer-checked:translate-x-5" />
+      </div>
+    </label>
+  );
+}
+
 /**
  * Settings panel for personalizing the caffeine model.
  *
@@ -20,8 +59,12 @@ const METABOLISM_PRESETS = [
  * - Metabolism speed: segmented control (Fast / Average / Slow) in simple mode,
  *   or CovariateForm with computed half-life in advanced mode
  * - Mode toggle: "Use advanced settings" / "Use simple settings" link
- * - Sleep threshold: number input (10-200mg) for the sleep-ready cutoff
+ * - Sleep threshold: number input (10-200mg) for the sleep-ready cutoff,
+ *   disabled when linked to a research threshold source
  * - Target bedtime: time picker for curfew calculation
+ * - Research thresholds: toggle for research-backed threshold display,
+ *   caffeine sensitivity selector (Low/Normal/High), and sleep threshold
+ *   source selector (Manual/Autonomic/Deep Sleep)
  *
  * All changes immediately persist to Zustand store and reactively update
  * the decay curve, sleep estimate, and curfew display throughout the app.
@@ -124,13 +167,17 @@ export function SettingsPanel() {
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
             Sleep Threshold
           </p>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${
+            settings.thresholdSource !== 'manual' ? 'opacity-50 pointer-events-none' : ''
+          }`}>
             <input
               type="number"
               min={10}
               max={200}
               step={10}
-              value={settings.thresholdMg}
+              value={settings.thresholdSource === 'manual'
+                ? settings.thresholdMg
+                : Math.round(getEffectiveThreshold(settings))}
               onChange={(e) => {
                 const val = Number(e.target.value);
                 if (!isNaN(val)) updateSettings({ thresholdMg: val });
@@ -139,6 +186,7 @@ export function SettingsPanel() {
                 const val = Math.min(200, Math.max(10, settings.thresholdMg || 10));
                 if (val !== settings.thresholdMg) updateSettings({ thresholdMg: val });
               }}
+              disabled={settings.thresholdSource !== 'manual'}
               className="w-20 text-center border border-gray-300 rounded px-2 py-2 text-sm min-h-[44px]"
             />
             <span className="text-sm text-gray-500">mg</span>
@@ -156,6 +204,101 @@ export function SettingsPanel() {
               className="block mt-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 font-normal normal-case tracking-normal min-h-[44px]"
             />
           </label>
+        </div>
+
+        {/* Research Thresholds (THRS-04) */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Research Thresholds
+          </p>
+          <ToggleSwitch
+            label="Show research thresholds"
+            checked={settings.showResearchThresholds}
+            onChange={(val) => updateSettings({ showResearchThresholds: val })}
+          />
+
+          {settings.showResearchThresholds && (
+            <div className="mt-4 space-y-4">
+              {/* Sensitivity Selector (THRS-05, D-07, D-08) */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Caffeine Sensitivity
+                </p>
+                <div role="group" aria-label="Caffeine sensitivity" className="flex">
+                  {SENSITIVITY_OPTIONS.map((option, index) => {
+                    const isActive = (settings.caffeineSensitivity ?? 'normal') === option.value;
+                    const roundedClass =
+                      index === 0
+                        ? 'rounded-l-lg'
+                        : index === SENSITIVITY_OPTIONS.length - 1
+                          ? 'rounded-r-lg'
+                          : '';
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => updateSettings({ caffeineSensitivity: option.value })}
+                        className={`flex-1 py-3 px-2 min-h-[44px] text-center border ${roundedClass} ${
+                          isActive
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">{option.label}</span>
+                        <span className={`block text-xs ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
+                          {option.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sleep Threshold Source (D-10) */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Sleep Threshold Source
+                </p>
+                <div role="group" aria-label="Sleep threshold source" className="flex">
+                  {THRESHOLD_SOURCE_OPTIONS.map((option, index) => {
+                    const isActive = (settings.thresholdSource ?? 'manual') === option.value;
+                    const roundedClass =
+                      index === 0
+                        ? 'rounded-l-lg'
+                        : index === THRESHOLD_SOURCE_OPTIONS.length - 1
+                          ? 'rounded-r-lg'
+                          : '';
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => updateSettings({ thresholdSource: option.value })}
+                        className={`flex-1 py-3 px-2 min-h-[44px] text-center border ${roundedClass} ${
+                          isActive
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Helper text showing active threshold value */}
+                <p className="text-xs text-gray-400 mt-1">
+                  {(() => {
+                    const source = settings.thresholdSource ?? 'manual';
+                    const effectiveVal = Math.round(getEffectiveThreshold(settings));
+                    if (source === 'manual') return `Using your custom ${effectiveVal}mg threshold`;
+                    if (source === 'autonomic') return `Using autonomic threshold (${effectiveVal}mg)`;
+                    return `Using deep sleep threshold (${effectiveVal}mg)`;
+                  })()}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

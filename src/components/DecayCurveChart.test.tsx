@@ -37,7 +37,7 @@ describe('DecayCurveChart', () => {
   beforeEach(() => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
     });
   });
 
@@ -109,7 +109,7 @@ describe('DecayCurveChart', () => {
         timestamp: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');
@@ -130,7 +130,7 @@ describe('DecayCurveChart', () => {
         timestamp: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'getCaffeineLevel');
@@ -149,7 +149,7 @@ describe('DecayCurveChart', () => {
   it('does not call parseNextBedtime when targetBedtime is null', () => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');
@@ -160,5 +160,32 @@ describe('DecayCurveChart', () => {
     expect(spy).not.toHaveBeenCalled();
 
     spy.mockRestore();
+  });
+
+  // --- Research threshold line tests (THRS-02) ---
+
+  it('renders without error when showResearchThresholds is false', () => {
+    // Default settings have showResearchThresholds: false
+    render(<DecayCurveChart />);
+    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    // No research line labels should be present
+    expect(screen.queryByText(/Autonomic:/)).toBeNull();
+    expect(screen.queryByText(/Deep sleep:/)).toBeNull();
+  });
+
+  it('renders without error when showResearchThresholds is true', () => {
+    useCaffeineStore.setState({
+      drinks: [],
+      settings: {
+        halfLifeHours: 5, thresholdMg: 50, targetBedtime: null,
+        metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
+        hiddenPresetIds: [], showResearchThresholds: true, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+      },
+    });
+
+    // Should render without throwing, even though Recharts ReferenceLine rendering
+    // in happy-dom may not produce visible SVG text for labels
+    render(<DecayCurveChart />);
+    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
   });
 });

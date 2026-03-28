@@ -15,6 +15,8 @@ const DEFAULT_SETTINGS = {
   },
   hiddenPresetIds: [] as string[],
   showResearchThresholds: false,
+  caffeineSensitivity: 'normal' as const,
+  thresholdSource: 'manual' as const,
 };
 
 beforeEach(() => {

@@ -16,6 +16,10 @@ const makeSettings = (overrides: Partial<Settings> = {}): Settings => ({
   targetBedtime: '00:00',
   metabolismMode: 'simple',
   covariates: { ...DEFAULT_COVARIATES },
+  hiddenPresetIds: [],
+  showResearchThresholds: false,
+  caffeineSensitivity: 'normal',
+  thresholdSource: 'manual',
   ...overrides,
 });
 

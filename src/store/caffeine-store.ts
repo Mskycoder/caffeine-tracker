@@ -45,6 +45,8 @@ export const useCaffeineStore = create<CaffeineState>()(
         covariates: { ...DEFAULT_COVARIATES },
         hiddenPresetIds: [],
         showResearchThresholds: false,
+        caffeineSensitivity: 'normal' as const,
+        thresholdSource: 'manual' as const,
       },
       customPresets: [],
       schedules: [],

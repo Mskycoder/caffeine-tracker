@@ -12,6 +12,8 @@ const defaultSettings = {
   covariates: { ...DEFAULT_COVARIATES },
   hiddenPresetIds: [] as string[],
   showResearchThresholds: false,
+  caffeineSensitivity: 'normal' as const,
+  thresholdSource: 'manual' as const,
 };
 
 describe('SettingsPanel', () => {
@@ -146,6 +148,84 @@ describe('SettingsPanel', () => {
       const state = useCaffeineStore.getState();
       expect(state.settings.metabolismMode).toBe('simple');
       expect(state.settings.covariates.smoking).toBe(true); // preserved
+    });
+  });
+
+  describe('research thresholds', () => {
+    it('renders Research Thresholds section header', () => {
+      render(<SettingsPanel />);
+      expect(screen.getByText('Research Thresholds')).toBeInTheDocument();
+    });
+
+    it('renders Show research thresholds toggle', () => {
+      render(<SettingsPanel />);
+      expect(screen.getByText('Show research thresholds')).toBeInTheDocument();
+    });
+
+    it('toggle is off by default', () => {
+      render(<SettingsPanel />);
+      const toggleCheckbox = screen.getByRole('checkbox');
+      expect(toggleCheckbox).not.toBeChecked();
+    });
+
+    it('shows sensitivity and threshold source controls when toggle is on', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, showResearchThresholds: true },
+      });
+      render(<SettingsPanel />);
+      expect(screen.getByText('Caffeine Sensitivity')).toBeInTheDocument();
+      expect(screen.getByText('Low')).toBeInTheDocument();
+      expect(screen.getByText('Normal')).toBeInTheDocument();
+      expect(screen.getByText('High')).toBeInTheDocument();
+      expect(screen.getByText('Sleep Threshold Source')).toBeInTheDocument();
+      expect(screen.getByText('Manual')).toBeInTheDocument();
+      expect(screen.getByText('Autonomic')).toBeInTheDocument();
+      expect(screen.getByText('Deep Sleep')).toBeInTheDocument();
+    });
+
+    it('hides sensitivity and threshold source controls when toggle is off', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, showResearchThresholds: false },
+      });
+      render(<SettingsPanel />);
+      expect(screen.queryByText('Caffeine Sensitivity')).not.toBeInTheDocument();
+    });
+
+    it('Normal sensitivity button has aria-pressed true by default', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, showResearchThresholds: true },
+      });
+      render(<SettingsPanel />);
+      const normalButton = screen.getByRole('button', { name: /normal/i });
+      expect(normalButton).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('clicking sensitivity button updates store', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, showResearchThresholds: true },
+      });
+      render(<SettingsPanel />);
+      // Use exact name match to avoid collision with "Slow" metabolism button
+      fireEvent.click(screen.getByRole('button', { name: /^low tolerant/i }));
+      expect(useCaffeineStore.getState().settings.caffeineSensitivity).toBe('low');
+    });
+
+    it('clicking threshold source button updates store', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, showResearchThresholds: true },
+      });
+      render(<SettingsPanel />);
+      fireEvent.click(screen.getByRole('button', { name: /autonomic/i }));
+      expect(useCaffeineStore.getState().settings.thresholdSource).toBe('autonomic');
+    });
+
+    it('sleep threshold input is disabled when threshold source is not manual', () => {
+      useCaffeineStore.setState({
+        settings: { ...defaultSettings, thresholdSource: 'autonomic' as const },
+      });
+      render(<SettingsPanel />);
+      const input = screen.getByRole('spinbutton');
+      expect(input).toBeDisabled();
     });
   });
 });
