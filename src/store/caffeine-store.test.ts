@@ -303,7 +303,7 @@ describe('migration', () => {
     expect(result.customPresets[0].name).toBe('My Drink');
   });
 
-  it('migrates v5 state to v6 adding hiddenPresetIds and showResearchThresholds', () => {
+  it('migrates v5 state to v6 adding hiddenPresetIds, showResearchThresholds, caffeineSensitivity, thresholdSource', () => {
     const v5State = {
       drinks: [],
       settings: { ...DEFAULT_SETTINGS },
@@ -313,10 +313,14 @@ describe('migration', () => {
     // Remove the new fields to simulate a real v5 state
     delete (v5State.settings as Record<string, unknown>).hiddenPresetIds;
     delete (v5State.settings as Record<string, unknown>).showResearchThresholds;
+    delete (v5State.settings as Record<string, unknown>).caffeineSensitivity;
+    delete (v5State.settings as Record<string, unknown>).thresholdSource;
     const options = useCaffeineStore.persist.getOptions();
     const result = options.migrate!(v5State, 5) as CaffeineState;
     expect(result.settings.hiddenPresetIds).toEqual([]);
     expect(result.settings.showResearchThresholds).toBe(false);
+    expect(result.settings.caffeineSensitivity).toBe('normal');
+    expect(result.settings.thresholdSource).toBe('manual');
   });
 
   it('returns v6 state unchanged', () => {
