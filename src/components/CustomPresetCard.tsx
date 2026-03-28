@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, FlaskConical } from 'lucide-react';
 import type { CustomPreset } from '../engine/types';
 
 interface CustomPresetCardProps {
@@ -10,18 +10,24 @@ interface CustomPresetCardProps {
   onCancelEdit: () => void;
   onSaveEdit: (id: string, updates: { name: string; caffeineMg: number }) => void;
   onDelete: (id: string) => void;
+  onCalculatorEdit?: () => void;  // opens calculator BottomSheet for re-editing
 }
 
 /**
  * Single custom preset card with display and inline edit modes.
  *
- * Display mode: preset name, caffeine mg, pencil edit icon, trash delete icon.
+ * Display mode: preset name, caffeine mg, edit icon, trash delete icon.
+ * Calculator presets (those with calculatorParams) show FlaskConical icon
+ * that triggers onCalculatorEdit to reopen the calculator BottomSheet.
+ * Simple presets show Pencil icon for inline editing (per IC-12).
+ *
  * Edit mode: inline form replacing card content with name/mg inputs and Save/Cancel.
  * Delete uses confirm-tap pattern: first tap shows "Confirm?", second tap deletes,
  * auto-resets after 3 seconds (managed by parent via isConfirmingDelete prop).
  *
  * Per D-09: edit via inline form on Drinks page.
  * Per D-10: delete with confirm-tap protection on Drinks page.
+ * Per IC-11: calculator presets show FlaskConical for re-edit via calculator.
  */
 export function CustomPresetCard({
   preset,
@@ -31,6 +37,7 @@ export function CustomPresetCard({
   onCancelEdit,
   onSaveEdit,
   onDelete,
+  onCalculatorEdit,
 }: CustomPresetCardProps) {
   const [editName, setEditName] = useState(preset.name);
   const [editMg, setEditMg] = useState(String(preset.caffeineMg));
@@ -92,6 +99,8 @@ export function CustomPresetCard({
     );
   }
 
+  const hasCalculator = !!preset.calculatorParams;
+
   return (
     <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
       <div className="flex items-center gap-2">
@@ -101,11 +110,11 @@ export function CustomPresetCard({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          onClick={handleStartEdit}
-          aria-label={`Edit ${preset.name}`}
+          onClick={hasCalculator ? onCalculatorEdit : handleStartEdit}
+          aria-label={hasCalculator ? `Edit ${preset.name} in calculator` : `Edit ${preset.name}`}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-blue-500"
         >
-          <Pencil size={16} />
+          {hasCalculator ? <FlaskConical size={16} /> : <Pencil size={16} />}
         </button>
         {isConfirmingDelete ? (
           <button

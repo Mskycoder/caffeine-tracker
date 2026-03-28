@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useCaffeineStore } from '../store/caffeine-store';
 import { CustomPresetCard } from './CustomPresetCard';
+import type { CustomPreset } from '../engine/types';
+
+interface MyDrinksManagerProps {
+  /** Callback when a calculator preset's FlaskConical icon is tapped (per IC-11). */
+  onCalculatorEdit?: (preset: CustomPreset) => void;
+}
 
 /**
  * Custom preset management section for the Drinks page.
@@ -8,15 +14,20 @@ import { CustomPresetCard } from './CustomPresetCard';
  * Contains a "My Drinks" header, a creation form (name + mg + Add button),
  * and a list of CustomPresetCard components for existing custom presets.
  *
+ * Calculator presets (those with calculatorParams) show a FlaskConical icon
+ * that triggers onCalculatorEdit to re-open the calculator BottomSheet.
+ * Simple presets show a Pencil icon for inline editing.
+ *
  * Per D-01: User can create a custom drink preset by entering name and caffeine amount.
  * Per D-02: Validation requires non-empty name (max 40 chars) and caffeine 1-1000 mg.
  * Per D-09: Edit via inline form on each card.
  * Per D-10: Delete with confirm-tap protection on each card.
+ * Per IC-11: Calculator presets forward to onCalculatorEdit callback.
  *
  * State management follows the same mutual exclusion pattern as DrinkHistory:
  * only one card can be in edit or delete-confirm state at a time.
  */
-export function MyDrinksManager() {
+export function MyDrinksManager({ onCalculatorEdit }: MyDrinksManagerProps) {
   const customPresets = useCaffeineStore((s) => s.customPresets);
   const addCustomPreset = useCaffeineStore((s) => s.addCustomPreset);
   const updateCustomPreset = useCaffeineStore((s) => s.updateCustomPreset);
@@ -129,6 +140,7 @@ export function MyDrinksManager() {
               onCancelEdit={handleCancelEdit}
               onSaveEdit={handleSaveEdit}
               onDelete={handleDelete}
+              onCalculatorEdit={onCalculatorEdit ? () => onCalculatorEdit(preset) : undefined}
             />
           ))}
         </div>

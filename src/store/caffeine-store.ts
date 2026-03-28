@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { DrinkEntry, Settings, CustomPreset, DrinkSchedule } from '../engine/types';
+import type { DrinkEntry, Settings, CustomPreset, DrinkSchedule, CalculatorParams } from '../engine/types';
 import { DEFAULT_COVARIATES } from '../engine/types';
 import { getScheduledDrinksToLog, formatDateKey } from '../engine/schedule';
 
@@ -23,8 +23,8 @@ interface CaffeineState {
   updateDrink: (id: string, updates: Partial<Omit<DrinkEntry, 'id'>>) => void;
   updateSettings: (partial: Partial<Settings>) => void;
   clearDrinks: () => void;
-  addCustomPreset: (name: string, caffeineMg: number) => void;
-  updateCustomPreset: (id: string, updates: Partial<Pick<CustomPreset, 'name' | 'caffeineMg'>>) => void;
+  addCustomPreset: (name: string, caffeineMg: number, calculatorParams?: CalculatorParams) => void;
+  updateCustomPreset: (id: string, updates: Partial<Pick<CustomPreset, 'name' | 'caffeineMg' | 'calculatorParams'>>) => void;
   removeCustomPreset: (id: string) => void;
   addSchedule: (schedule: Omit<DrinkSchedule, 'id' | 'paused' | 'lastRunDate'>) => void;
   updateSchedule: (id: string, updates: Partial<Omit<DrinkSchedule, 'id'>>) => void;
@@ -73,11 +73,16 @@ export const useCaffeineStore = create<CaffeineState>()(
 
       clearDrinks: () => set({ drinks: [] }),
 
-      addCustomPreset: (name, caffeineMg) =>
+      addCustomPreset: (name, caffeineMg, calculatorParams?) =>
         set((state) => ({
           customPresets: [
             ...state.customPresets,
-            { id: `custom-${crypto.randomUUID()}`, name, caffeineMg },
+            {
+              id: `custom-${crypto.randomUUID()}`,
+              name,
+              caffeineMg,
+              ...(calculatorParams ? { calculatorParams } : {}),
+            },
           ],
         })),
 

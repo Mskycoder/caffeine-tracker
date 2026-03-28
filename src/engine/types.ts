@@ -47,11 +47,60 @@ export interface Settings {
   showResearchThresholds: boolean;     // Phase 17 groundwork: research threshold toggle
 }
 
+/** Brew method identifiers for coffee calculator (Phase 16). */
+export type BrewMethod =
+  | 'espresso' | 'pour-over' | 'french-press' | 'cold-brew'
+  | 'moka-pot' | 'aeropress' | 'turkish' | 'siphon'
+  | 'chemex' | 'percolator';
+
+/** Bean type identifiers (Phase 16). */
+export type BeanType = 'arabica' | 'robusta' | 'blend' | 'custom';
+
+/** Grind size stops from finest to coarsest (Phase 16). */
+export type GrindSize = 'extra-fine' | 'fine' | 'medium-fine' | 'medium' | 'coarse';
+
+/** Configuration for a single brew method (Phase 16). */
+export interface BrewMethodConfig {
+  name: string;
+  baseExtractionRate: number;
+  defaultDoseG: number;
+  defaultGrind: GrindSize;
+  defaultTempC: number;
+  disableTemp: boolean;
+}
+
+/** Input parameters for coffee calculator computation (Phase 16). */
+export interface CalculatorInput {
+  brewMethod: BrewMethod;
+  beanType: BeanType;
+  beanCaffeinePercent: number;
+  doseG: number;
+  grindSize: GrindSize;
+  waterTempC: number;
+}
+
+/** Result from coffee calculator computation (Phase 16). */
+export interface CalculatorResult {
+  caffeineMg: number;
+  effectiveExtractionRate: number;
+}
+
+/** Saved calculator parameters for re-editing a calculator preset (Phase 16, D-08). */
+export interface CalculatorParams {
+  brewMethod: BrewMethod;
+  beanType: BeanType;
+  beanCaffeinePercent: number;
+  doseG: number;
+  grindSize: GrindSize;
+  waterTempC: number;
+}
+
 /** A user-created custom drink preset (Phase 10). Per D-06. */
 export interface CustomPreset {
   id: string;           // `custom-${crypto.randomUUID()}` — serves as both CRUD key and presetId for color derivation
   name: string;         // user-entered drink name (1-40 chars)
   caffeineMg: number;   // caffeine content in mg (1-1000)
+  calculatorParams?: CalculatorParams;  // Phase 16: undefined for simple presets
 }
 
 /** A recurring drink schedule for auto-logging (Phase 13). */

@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { useCaffeineStore, type CaffeineState } from './caffeine-store';
+import type { CalculatorParams } from '../engine/types';
 
 const DEFAULT_SETTINGS = {
   halfLifeHours: 5,
@@ -382,6 +383,81 @@ describe('updateCustomPreset', () => {
     const { customPresets } = useCaffeineStore.getState();
     expect(customPresets).toHaveLength(1);
     expect(customPresets[0].name).toBe('Existing');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// addCustomPreset with calculatorParams
+// ---------------------------------------------------------------------------
+describe('addCustomPreset with calculatorParams', () => {
+  const sampleCalcParams: CalculatorParams = {
+    brewMethod: 'espresso',
+    beanType: 'arabica',
+    beanCaffeinePercent: 1.2,
+    doseG: 18,
+    grindSize: 'fine',
+    waterTempC: 93,
+  };
+
+  it('still works with 2 args (backward compat)', () => {
+    useCaffeineStore.getState().addCustomPreset('Morning Latte', 63);
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets).toHaveLength(1);
+    expect(customPresets[0].name).toBe('Morning Latte');
+    expect(customPresets[0].caffeineMg).toBe(63);
+    expect(customPresets[0].calculatorParams).toBeUndefined();
+  });
+
+  it('stores calculatorParams when provided as 3rd argument', () => {
+    useCaffeineStore.getState().addCustomPreset('Espresso (Arabica, 18g)', 66, sampleCalcParams);
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets).toHaveLength(1);
+    expect(customPresets[0].calculatorParams).toEqual(sampleCalcParams);
+  });
+
+  it('creates preset with id starting with "custom-" when calculatorParams provided', () => {
+    useCaffeineStore.getState().addCustomPreset('My Brew', 63, sampleCalcParams);
+    const { customPresets } = useCaffeineStore.getState();
+    expect(customPresets[0].id).toMatch(/^custom-[0-9a-f]{8}-/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateCustomPreset with calculatorParams
+// ---------------------------------------------------------------------------
+describe('updateCustomPreset with calculatorParams', () => {
+  const sampleCalcParams: CalculatorParams = {
+    brewMethod: 'espresso',
+    beanType: 'arabica',
+    beanCaffeinePercent: 1.2,
+    doseG: 18,
+    grindSize: 'fine',
+    waterTempC: 93,
+  };
+
+  it('updates calculatorParams on existing preset', () => {
+    useCaffeineStore.getState().addCustomPreset('Brew', 63, sampleCalcParams);
+    const id = useCaffeineStore.getState().customPresets[0].id;
+    const updatedParams: CalculatorParams = { ...sampleCalcParams, doseG: 20 };
+    useCaffeineStore.getState().updateCustomPreset(id, { calculatorParams: updatedParams });
+    const preset = useCaffeineStore.getState().customPresets[0];
+    expect(preset.calculatorParams).toEqual(updatedParams);
+    expect(preset.calculatorParams!.doseG).toBe(20);
+  });
+
+  it('preserves existing calculatorParams when updating only name', () => {
+    useCaffeineStore.getState().addCustomPreset('Old Name', 63, sampleCalcParams);
+    const id = useCaffeineStore.getState().customPresets[0].id;
+    useCaffeineStore.getState().updateCustomPreset(id, { name: 'New Name' });
+    const preset = useCaffeineStore.getState().customPresets[0];
+    expect(preset.name).toBe('New Name');
+    expect(preset.calculatorParams).toEqual(sampleCalcParams);
+  });
+
+  it('existing presets without calculatorParams have undefined calculatorParams', () => {
+    useCaffeineStore.getState().addCustomPreset('Simple Drink', 50);
+    const preset = useCaffeineStore.getState().customPresets[0];
+    expect(preset.calculatorParams).toBeUndefined();
   });
 });
 
