@@ -6,7 +6,7 @@ import {
 import { format } from 'date-fns';
 import { useCaffeineStore } from '../store/caffeine-store';
 import { generateStackedCurveData, parseNextBedtime, getCaffeineLevel } from '../engine/caffeine';
-import { PROJECTION_STEP_MS } from '../engine/constants';
+import { PROJECTION_STEP_MS, DEFAULT_KA } from '../engine/constants';
 import { getDrinkColor } from '../data/colors';
 import { getEffectiveHalfLife } from '../engine/metabolism';
 import { getPersonalizedThresholds, getEffectiveThreshold } from '../engine/thresholds';
@@ -79,6 +79,7 @@ function StackedTooltip({ active, payload, label, drinks }: StackedTooltipProps)
  * Visual layering (back to front): grid, threshold, research lines, bedtime line, "Now" line, drink areas.
  * Bedtime line only renders when targetBedtime is set (not null).
  *
+ * Active drinks (endedAt=undefined) render correctly via currentTime parameter to expandAllDrinks.
  * Data is recomputed every 30 seconds via useCurrentTime hook.
  * Parent div has responsive height: h-[220px] on mobile, sm:h-[300px] on desktop (Recharts Pitfall 1).
  * XAxis uses type="number" with epoch ms domain (Recharts Pitfall 2).
@@ -105,7 +106,7 @@ export function DecayCurveChart() {
   const endTime = now + futureWindowMs;
 
   const stackedData = generateStackedCurveData(
-    drinks, startTime, endTime, PROJECTION_STEP_MS, effectiveHalfLife
+    drinks, startTime, endTime, PROJECTION_STEP_MS, effectiveHalfLife, DEFAULT_KA, now
   );
 
   // Extract active drink IDs sorted chronologically (earliest at bottom of stack)

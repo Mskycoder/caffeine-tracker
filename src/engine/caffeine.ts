@@ -195,6 +195,10 @@ export function getSleepReadyTime(
  * Duration drinks are expanded into sub-doses that share the parent drink's ID,
  * so multiple sub-doses accumulate into a single chart layer per drink.
  *
+ * Active drinks (endedAt=undefined) are correctly expanded via the `currentTime`
+ * parameter, which is passed to `expandAllDrinks` as the provisional end time.
+ * Defaults to `endTime` for backward compatibility.
+ *
  * Drink keys are omitted when:
  * - The point time is before the drink's startedAt (not yet consumed)
  * - The contribution is below NEGLIGIBLE_MG threshold
@@ -208,8 +212,9 @@ export function generateStackedCurveData(
   stepMs: number,
   halfLifeHours: number,
   ka: number = DEFAULT_KA,
+  currentTime: number = endTime,
 ): DrinkCurvePoint[] {
-  const expanded = expandAllDrinks(drinks, startTime);
+  const expanded = expandAllDrinks(drinks, currentTime);
   const points: DrinkCurvePoint[] = [];
 
   for (let t = startTime; t <= endTime; t += stepMs) {

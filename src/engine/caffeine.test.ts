@@ -8,6 +8,7 @@ import {
   getDailyTotal,
 } from './caffeine';
 import { startOfDay } from 'date-fns';
+import { DEFAULT_KA } from './constants';
 import type { DrinkEntry } from './types';
 
 const BASE_TIME = 1_700_000_000_000;
@@ -701,6 +702,66 @@ describe('generateStackedCurveData with duration drinks', () => {
     // No other drink keys should exist
     const keys = Object.keys(oneHourPoint!).filter((k) => k !== 'time' && k !== 'total');
     expect(keys).toEqual(['shared-id']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateStackedCurveData with active drinks
+// ---------------------------------------------------------------------------
+describe('generateStackedCurveData with active drinks', () => {
+  const stepMs = 5 * 60_000;
+
+  it('active drink (endedAt=undefined) shows gradual ramp when currentTime is passed', () => {
+    const drink = makeDrink({
+      id: 'active-drink',
+      caffeineMg: 200,
+      startedAt: BASE_TIME,
+      endedAt: undefined,
+    });
+
+    const currentTime = BASE_TIME + 30 * 60_000; // 30 min into drinking
+    const startTime = BASE_TIME - 12 * 3_600_000; // 12h before (chart window)
+    const endTime = BASE_TIME + 24 * 3_600_000;
+    const data = generateStackedCurveData(
+      [drink], startTime, endTime, stepMs, 5, DEFAULT_KA, currentTime
+    );
+
+    // Compare against an instant drink to verify gradual ramp vs instant spike
+    const instantDrink = makeDrink({
+      id: 'active-drink',
+      caffeineMg: 200,
+      startedAt: BASE_TIME,
+      endedAt: BASE_TIME, // instant
+    });
+    const instantData = generateStackedCurveData(
+      [instantDrink], startTime, endTime, stepMs, 5, DEFAULT_KA, currentTime
+    );
+
+    // At 15 min into drinking: partial sub-doses absorbed
+    const at15 = data.find((p) => p.time === BASE_TIME + 15 * 60_000);
+    const instantAt15 = instantData.find((p) => p.time === BASE_TIME + 15 * 60_000);
+
+    expect(at15).toBeDefined();
+    expect(instantAt15).toBeDefined();
+
+    const level15 = (at15!['active-drink'] as number) ?? 0;
+    const instantLevel15 = (instantAt15!['active-drink'] as number) ?? 0;
+
+    // Gradual ramp: active drink at 15min should have LESS caffeine than instant
+    // because only ~half the sub-doses have been released
+    expect(level15).toBeGreaterThan(0);
+    expect(level15).toBeLessThan(instantLevel15);
+  });
+
+  it('without currentTime param, falls back to endTime (backward compatible)', () => {
+    const drink = makeDrink({ id: 'compat-drink', caffeineMg: 95 });
+    const startTime = BASE_TIME;
+    const endTime = BASE_TIME + 2 * 3_600_000;
+    const data = generateStackedCurveData([drink], startTime, endTime, stepMs, 5);
+
+    const oneHourPoint = data.find((p) => p.time === BASE_TIME + 3_600_000);
+    expect(oneHourPoint).toBeDefined();
+    expect(oneHourPoint!['compat-drink']).toBeGreaterThan(0);
   });
 });
 
