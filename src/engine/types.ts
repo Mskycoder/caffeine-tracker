@@ -57,6 +57,7 @@ export interface Settings {
   showResearchThresholds: boolean;     // Phase 17 groundwork: research threshold toggle
   caffeineSensitivity: CaffeineSensitivity;  // Phase 17: sensitivity multiplier for thresholds
   thresholdSource: ThresholdSource;          // Phase 17: source for effective sleep threshold
+  lastCallDrinkId: string | null;            // Phase 20: selected drink for curfew personalization
 }
 
 /** Brew method identifiers for coffee calculator (Phase 16). */

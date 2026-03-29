@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS = {
   showResearchThresholds: false,
   caffeineSensitivity: 'normal' as const,
   thresholdSource: 'manual' as const,
+  lastCallDrinkId: null,
 };
 
 beforeEach(() => {

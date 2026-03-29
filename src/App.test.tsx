@@ -49,6 +49,7 @@ beforeEach(() => {
       showResearchThresholds: false,
       caffeineSensitivity: 'normal' as const,
       thresholdSource: 'manual' as const,
+      lastCallDrinkId: null,
     },
   });
 });

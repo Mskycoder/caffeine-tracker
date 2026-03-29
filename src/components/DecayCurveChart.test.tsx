@@ -37,7 +37,7 @@ describe('DecayCurveChart', () => {
   beforeEach(() => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
   });
 
@@ -112,7 +112,7 @@ describe('DecayCurveChart', () => {
       endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');
@@ -134,7 +134,7 @@ describe('DecayCurveChart', () => {
       endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'getCaffeineLevel');
@@ -153,7 +153,7 @@ describe('DecayCurveChart', () => {
   it('does not call parseNextBedtime when targetBedtime is null', () => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     const spy = vi.spyOn(caffeineEngine, 'parseNextBedtime');
@@ -184,6 +184,7 @@ describe('DecayCurveChart', () => {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: null,
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
         hiddenPresetIds: [], showResearchThresholds: true, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
     });
 

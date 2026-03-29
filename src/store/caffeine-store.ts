@@ -12,7 +12,7 @@ import { AUTO_FINISH_TIMEOUT_MS } from '../engine/constants';
  * Actions: CRUD for drinks, CRUD for custom presets, CRUD for schedules, runCatchUp, partial update for settings.
  *
  * Persisted to localStorage via Zustand persist middleware (TECH-01).
- * Schema version 7. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates), v4->v5 (schedules), v5->v6 (hiddenPresetIds, showResearchThresholds, caffeineSensitivity, thresholdSource), v6->v7 (timestamp->startedAt, endedAt, durationMinutes).
+ * Schema version 8. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates), v4->v5 (schedules), v5->v6 (hiddenPresetIds, showResearchThresholds, caffeineSensitivity, thresholdSource), v6->v7 (timestamp->startedAt, endedAt, durationMinutes), v7->v8 (lastCallDrinkId).
  */
 interface CaffeineState {
   drinks: DrinkEntry[];
@@ -51,6 +51,7 @@ export const useCaffeineStore = create<CaffeineState>()(
         showResearchThresholds: false,
         caffeineSensitivity: 'normal' as const,
         thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
       customPresets: [],
       schedules: [],
@@ -184,7 +185,7 @@ export const useCaffeineStore = create<CaffeineState>()(
     }),
     {
       name: 'caffeine-tracker-storage',
-      version: 7,
+      version: 8,
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>;
         if (version < 2) {
@@ -252,6 +253,14 @@ export const useCaffeineStore = create<CaffeineState>()(
             durationMinutes: (p as Record<string, unknown>).durationMinutes ?? 0,
           }));
           state.customPresets = customPresets;
+        }
+        if (version < 8) {
+          // v7 -> v8: add lastCallDrinkId (Phase 20)
+          const settings = state.settings as Record<string, unknown>;
+          state.settings = {
+            ...settings,
+            lastCallDrinkId: settings.lastCallDrinkId ?? null,
+          };
         }
         return state as unknown as CaffeineState;
       },

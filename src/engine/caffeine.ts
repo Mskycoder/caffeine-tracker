@@ -42,6 +42,10 @@ export function parseNextBedtime(bedtimeStr: string, now: number): number {
  *   - { status: 'budget_exceeded' } — existing drinks push bedtime caffeine above threshold
  *   - { status: 'too_soon' } — no valid curfew exists even scanning back 24 hours
  *
+ * When `durationMinutes` > 0, the hypothetical drink is modeled with sub-dose
+ * expansion over the given duration, producing earlier curfew times for drinks
+ * consumed over time.
+ *
  * Pure function: no Date.now() calls -- all times passed as arguments (per D-05).
  */
 export function getCaffeineCurfew(
@@ -51,6 +55,7 @@ export function getCaffeineCurfew(
   halfLifeHours: number,
   thresholdMg: number,
   standardDoseMg: number = 95,
+  durationMinutes: number = 0,
   ka: number = DEFAULT_KA,
 ): CurfewResult {
   // Current caffeine contribution at bedtime from existing drinks
@@ -66,15 +71,20 @@ export function getCaffeineCurfew(
   const scanStart = targetBedtimeMs - 24 * 60 * 60 * 1000;
   let curfew: number | null = null;
   for (let t = scanStart; t <= targetBedtimeMs; t += PROJECTION_STEP_MS) {
+    const endedAt = durationMinutes > 0 ? t + durationMinutes * 60_000 : t;
     const fakeDrink: DrinkEntry = {
       id: 'curfew-calc',
       name: 'Curfew',
       caffeineMg: standardDoseMg,
       startedAt: t,
-      endedAt: t,
+      endedAt: endedAt,
       presetId: null,
     };
-    const contribution = singleDrinkLevel(fakeDrink, targetBedtimeMs, halfLifeHours, ka);
+    // For duration drinks, use getCaffeineLevel (handles sub-dose expansion)
+    // then subtract existing contribution. For instant drinks, singleDrinkLevel is correct.
+    const contribution = durationMinutes > 0
+      ? getCaffeineLevel([...drinks, fakeDrink], targetBedtimeMs, halfLifeHours, ka) - existingAtBedtime
+      : singleDrinkLevel(fakeDrink, targetBedtimeMs, halfLifeHours, ka);
     if (contribution <= budget) {
       curfew = t; // This time works; keep scanning for a later one
     } else {

@@ -1,5 +1,4 @@
 import { expandDrinkToSubDoses, expandAllDrinks } from './subdose';
-import { SUB_DOSE_INTERVAL_MS } from './constants';
 import type { DrinkEntry } from './types';
 
 const BASE_TIME = new Date('2025-01-15T08:00:00').getTime();

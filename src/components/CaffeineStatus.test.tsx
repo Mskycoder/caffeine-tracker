@@ -26,6 +26,7 @@ describe('CaffeineStatus', () => {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
         hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
     });
   });
@@ -90,7 +91,7 @@ describe('CaffeineStatus', () => {
         endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     render(<CaffeineStatus />);
@@ -141,7 +142,7 @@ describe('CaffeineStatus', () => {
         endedAt: FIXED_NOW - 6 * 3_600_000,
         presetId: 'tea',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     render(<CaffeineStatus />);
@@ -159,18 +160,18 @@ describe('CaffeineStatus', () => {
         endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     render(<CaffeineStatus />);
-    expect(screen.getByText('Caffeine already above bedtime target')).toBeInTheDocument();
+    expect(screen.getByText('Already above bedtime target')).toBeInTheDocument();
   });
 
   it('shows curfew when no drinks logged', () => {
     // No drinks -- full budget available, should show a curfew time
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '22:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     render(<CaffeineStatus />);
@@ -235,6 +236,7 @@ describe('CaffeineStatus', () => {
         metabolismMode: 'advanced' as const,
         covariates: { ...defaultCovariates, sex: 'female' as const },
         hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
     });
 
@@ -265,7 +267,7 @@ describe('CaffeineStatus', () => {
         endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     render(<CaffeineStatus />);
@@ -285,7 +287,7 @@ describe('CaffeineStatus', () => {
         endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     render(<CaffeineStatus />);
@@ -298,7 +300,7 @@ describe('CaffeineStatus', () => {
   it('does not show bedtime mg when targetBedtime is null', () => {
     useCaffeineStore.setState({
       drinks: [],
-      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
+      settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: null, metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const, lastCallDrinkId: null },
     });
 
     render(<CaffeineStatus />);
@@ -323,6 +325,7 @@ describe('CaffeineStatus', () => {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
         hiddenPresetIds: [], showResearchThresholds: true, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
     });
 
@@ -348,6 +351,7 @@ describe('CaffeineStatus', () => {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
         hiddenPresetIds: [], showResearchThresholds: true, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
     });
 
@@ -372,6 +376,7 @@ describe('CaffeineStatus', () => {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
         hiddenPresetIds: [], showResearchThresholds: true, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
     });
 
@@ -391,6 +396,7 @@ describe('CaffeineStatus', () => {
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
         hiddenPresetIds: [], showResearchThresholds: true,
         caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+        lastCallDrinkId: null,
       },
     });
 
@@ -433,6 +439,7 @@ describe('CaffeineStatus', () => {
         halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
         metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
         hiddenPresetIds: [], showResearchThresholds: true, caffeineSensitivity: 'normal' as const, thresholdSource: 'autonomic' as const,
+        lastCallDrinkId: null,
       },
     });
 
@@ -442,5 +449,170 @@ describe('CaffeineStatus', () => {
     // The important thing is it renders without error
     const container = screen.getByText('mg').closest('section')!;
     expect(container).toBeInTheDocument();
+  });
+
+  // --- Personalized curfew tests (Phase 20) ---
+
+  describe('personalized curfew (Phase 20)', () => {
+    const makeSettings = (overrides: Partial<typeof useCaffeineStore extends { getState: () => infer S } ? S extends { settings: infer T } ? T : never : never> = {}) => ({
+      halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
+      metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
+      hiddenPresetIds: [] as string[], showResearchThresholds: false,
+      caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+      lastCallDrinkId: null as string | null,
+      ...overrides,
+    });
+
+    it('shows generic wording with null lastCallDrinkId', () => {
+      useCaffeineStore.setState({
+        drinks: [{
+          id: 'test-generic-curfew',
+          name: 'Tea',
+          caffeineMg: 30,
+          startedAt: FIXED_NOW - 6 * 3_600_000,
+          endedAt: FIXED_NOW - 6 * 3_600_000,
+          presetId: 'black-tea',
+        }],
+        settings: makeSettings({ lastCallDrinkId: null }),
+      });
+
+      render(<CaffeineStatus />);
+      expect(screen.getByText(/Last call for caffeine/)).toBeInTheDocument();
+    });
+
+    it('shows personalized OK wording with drip-coffee selected', () => {
+      useCaffeineStore.setState({
+        drinks: [{
+          id: 'test-personal-ok',
+          name: 'Tea',
+          caffeineMg: 30,
+          startedAt: FIXED_NOW - 6 * 3_600_000,
+          endedAt: FIXED_NOW - 6 * 3_600_000,
+          presetId: 'black-tea',
+        }],
+        settings: makeSettings({ lastCallDrinkId: 'drip-coffee' }),
+      });
+
+      render(<CaffeineStatus />);
+      expect(screen.getByText(/Last Drip Coffee:/)).toBeInTheDocument();
+    });
+
+    it('shows personalized curfew_passed on-track wording', () => {
+      // Compute a bedtime 1h from FIXED_NOW in local time.
+      // For 95mg drip-coffee with 5h half-life and 50mg threshold,
+      // the curfew is ~4.8h before bedtime, which is well before FIXED_NOW.
+      // With no drinks, caffeine = 0 = on-track for bedtime.
+      const bedtimeDate = new Date(FIXED_NOW + 1 * 3_600_000);
+      const nearBedtime = `${String(bedtimeDate.getHours()).padStart(2, '0')}:${String(bedtimeDate.getMinutes()).padStart(2, '0')}`;
+      useCaffeineStore.setState({
+        drinks: [],
+        settings: makeSettings({ lastCallDrinkId: 'drip-coffee', targetBedtime: nearBedtime }),
+      });
+
+      render(<CaffeineStatus />);
+      expect(screen.getByText(/Past last Drip Coffee/)).toBeInTheDocument();
+    });
+
+    it('shows personalized curfew_passed wording with time when not on track', () => {
+      // Note: curfew_passed + !onTrackForBedtime is unreachable in practice because
+      // if caffeine at bedtime > threshold (not on track), budget <= 0 => budget_exceeded.
+      // However, we test that the curfew_passed generic wording includes the time span
+      // by verifying the on-track variant which IS reachable (tested above).
+      // Instead, verify that when curfew has passed with high caffeine, budget_exceeded
+      // takes precedence with the correct personalized wording.
+      const bedtimeDate = new Date(FIXED_NOW + 1 * 3_600_000);
+      const nearBedtime = `${String(bedtimeDate.getHours()).padStart(2, '0')}:${String(bedtimeDate.getMinutes()).padStart(2, '0')}`;
+      useCaffeineStore.setState({
+        drinks: [{
+          id: 'test-personal-past',
+          name: 'Mega Coffee',
+          caffeineMg: 500,
+          startedAt: FIXED_NOW - 3_600_000,
+          endedAt: FIXED_NOW - 3_600_000,
+          presetId: null,
+        }],
+        settings: makeSettings({ lastCallDrinkId: 'drip-coffee', targetBedtime: nearBedtime }),
+      });
+
+      render(<CaffeineStatus />);
+      // budget_exceeded takes precedence when caffeine at bedtime > threshold
+      expect(screen.getByText('Already above bedtime target')).toBeInTheDocument();
+    });
+
+    it('shows unchanged budget_exceeded text with drink selected', () => {
+      useCaffeineStore.setState({
+        drinks: [{
+          id: 'test-budget-exceeded',
+          name: 'Mega Coffee',
+          caffeineMg: 5000,
+          startedAt: FIXED_NOW - 3_600_000,
+          endedAt: FIXED_NOW - 3_600_000,
+          presetId: null,
+        }],
+        settings: makeSettings({ lastCallDrinkId: 'drip-coffee' }),
+      });
+
+      render(<CaffeineStatus />);
+      expect(screen.getByText('Already above bedtime target')).toBeInTheDocument();
+    });
+
+    it('falls back to generic wording for nonexistent lastCallDrinkId', () => {
+      useCaffeineStore.setState({
+        drinks: [{
+          id: 'test-fallback',
+          name: 'Tea',
+          caffeineMg: 30,
+          startedAt: FIXED_NOW - 6 * 3_600_000,
+          endedAt: FIXED_NOW - 6 * 3_600_000,
+          presetId: 'black-tea',
+        }],
+        settings: makeSettings({ lastCallDrinkId: 'deleted-preset-id' }),
+      });
+
+      render(<CaffeineStatus />);
+      expect(screen.getByText(/Last call for caffeine/)).toBeInTheDocument();
+    });
+
+    it('uses selected drink caffeineMg for curfew calculation (CURFEW-03)', () => {
+      // Compare curfew times between generic (95mg) and cold-brew (200mg)
+      // Cold-brew curfew should be earlier because 200mg pushes more caffeine to bedtime
+      const baseDrink = {
+        id: 'test-curfew-compare',
+        name: 'Tea',
+        caffeineMg: 30,
+        startedAt: FIXED_NOW - 6 * 3_600_000,
+        endedAt: FIXED_NOW - 6 * 3_600_000,
+        presetId: 'black-tea',
+      };
+
+      // Render with no selection (generic 95mg)
+      useCaffeineStore.setState({
+        drinks: [baseDrink],
+        settings: makeSettings({ lastCallDrinkId: null }),
+      });
+      const { unmount: unmount1 } = render(<CaffeineStatus />);
+      const genericCurfewEl = screen.getByText(/Last call for caffeine/).closest('p')!;
+      const genericTimeMatch = genericCurfewEl.textContent!.match(/\d{1,2}:\d{2}\s*[AP]M/);
+      unmount1();
+
+      // Render with cold-brew selected (200mg)
+      useCaffeineStore.setState({
+        drinks: [baseDrink],
+        settings: makeSettings({ lastCallDrinkId: 'cold-brew' }),
+      });
+      const { unmount: unmount2 } = render(<CaffeineStatus />);
+      const coldBrewCurfewEl = screen.getByText(/Last Cold Brew:/).closest('p')!;
+      const coldBrewTimeMatch = coldBrewCurfewEl.textContent!.match(/\d{1,2}:\d{2}\s*[AP]M/);
+      unmount2();
+
+      // Both should have valid times
+      expect(genericTimeMatch).not.toBeNull();
+      expect(coldBrewTimeMatch).not.toBeNull();
+
+      // Cold-brew (200mg) curfew should be different from generic (95mg)
+      // because higher mg means the drink contributes more caffeine at bedtime
+      // so the curfew must be earlier
+      expect(coldBrewTimeMatch![0]).not.toBe(genericTimeMatch![0]);
+    });
   });
 });

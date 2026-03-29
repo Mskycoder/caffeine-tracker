@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   showResearchThresholds: false,
   caffeineSensitivity: 'normal' as const,
   thresholdSource: 'manual' as const,
+  lastCallDrinkId: null as string | null,
 };
 
 beforeEach(() => {
@@ -44,6 +45,11 @@ describe('initial state', () => {
     expect(settings.targetBedtime).toBe('00:00');
     expect(settings.metabolismMode).toBe('simple');
     expect(settings.covariates).toEqual(DEFAULT_SETTINGS.covariates);
+  });
+
+  it('settings has lastCallDrinkId null by default', () => {
+    const { settings } = useCaffeineStore.getState();
+    expect(settings.lastCallDrinkId).toBeNull();
   });
 
   it('customPresets is an empty array', () => {
@@ -209,9 +215,9 @@ describe('persist config', () => {
     expect(options.name).toBe('caffeine-tracker-storage');
   });
 
-  it('version is 7', () => {
+  it('version is 8', () => {
     const options = useCaffeineStore.persist.getOptions();
-    expect(options.version).toBe(7);
+    expect(options.version).toBe(8);
   });
 });
 
@@ -326,15 +332,15 @@ describe('migration', () => {
     expect(result.settings.thresholdSource).toBe('manual');
   });
 
-  it('returns v7 state unchanged', () => {
-    const v7State = {
+  it('returns v8 state unchanged', () => {
+    const v8State = {
       drinks: [{ id: 'd1', name: 'Coffee', caffeineMg: 95, startedAt: 1000, endedAt: 1000, presetId: null }],
       settings: { ...DEFAULT_SETTINGS },
       customPresets: [{ id: 'custom-1', name: 'Mocha', caffeineMg: 120, durationMinutes: 0 }],
       schedules: [{ id: 'sched-1', presetId: 'drip-coffee', name: 'Drip Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1, 2, 3, 4, 5], paused: false, lastRunDate: null }],
     };
     const options = useCaffeineStore.persist.getOptions();
-    const result = options.migrate!(v7State, 7) as CaffeineState;
+    const result = options.migrate!(v8State, 8) as CaffeineState;
     expect(result.schedules).toHaveLength(1);
     expect(result.schedules[0].name).toBe('Drip Coffee');
     expect(result.drinks[0].startedAt).toBe(1000);
@@ -420,6 +426,56 @@ describe('v6 -> v7 migration', () => {
     const options = useCaffeineStore.persist.getOptions();
     const result = options.migrate!(v6State, 6) as CaffeineState;
     expect(result.customPresets[0].durationMinutes).toBe(15);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v7 -> v8 migration
+// ---------------------------------------------------------------------------
+describe('v7 -> v8 migration', () => {
+  it('adds lastCallDrinkId: null to v7 state without it', () => {
+    const v7State = {
+      drinks: [{ id: 'd1', name: 'Coffee', caffeineMg: 95, startedAt: 1000, endedAt: 1000, presetId: null }],
+      settings: {
+        halfLifeHours: 5,
+        thresholdMg: 50,
+        targetBedtime: '23:00',
+        metabolismMode: 'simple' as const,
+        covariates: { ...DEFAULT_SETTINGS.covariates },
+        hiddenPresetIds: [],
+        showResearchThresholds: false,
+        caffeineSensitivity: 'normal' as const,
+        thresholdSource: 'manual' as const,
+      },
+      customPresets: [],
+      schedules: [],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v7State, 7) as CaffeineState;
+    expect(result.settings.lastCallDrinkId).toBeNull();
+  });
+
+  it('preserves existing lastCallDrinkId value through migration', () => {
+    const v7State = {
+      drinks: [],
+      settings: {
+        halfLifeHours: 5,
+        thresholdMg: 50,
+        targetBedtime: '23:00',
+        metabolismMode: 'simple' as const,
+        covariates: { ...DEFAULT_SETTINGS.covariates },
+        hiddenPresetIds: [],
+        showResearchThresholds: false,
+        caffeineSensitivity: 'normal' as const,
+        thresholdSource: 'manual' as const,
+        lastCallDrinkId: 'drip-coffee',
+      },
+      customPresets: [],
+      schedules: [],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v7State, 7) as CaffeineState;
+    expect(result.settings.lastCallDrinkId).toBe('drip-coffee');
   });
 });
 

@@ -5,6 +5,8 @@ import { dailyTotalColor } from '../data/colors';
 import { FDA_DAILY_LIMIT_MG } from '../engine/constants';
 import { getEffectiveHalfLife } from '../engine/metabolism';
 import { getPersonalizedThresholds, getThresholdZone, getEffectiveThreshold } from '../engine/thresholds';
+import { DRINK_PRESETS } from '../data/presets';
+import type { CustomPreset } from '../engine/types';
 import { useCurrentTime } from '../hooks/useCurrentTime';
 
 /**
@@ -17,8 +19,11 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
  *    - "On track for {time} · {N}mg" when will be clear before bedtime (green)
  *    - "Won't clear until {time} · {N}mg" when still above threshold at bedtime (amber)
  *    - When targetBedtime is null, status text only (no dot separator or mg portion)
- * 3. Caffeine curfew -- "Last call for caffeine: X:XX AM/PM", or contextual past-curfew
- *    messages that pair coherently with the sleep estimate
+ * 3. Caffeine curfew -- personalized with selected last-call drink name when
+ *    `lastCallDrinkId` is set (e.g., "Last Drip Coffee: X:XX AM/PM"), or generic
+ *    "Last call for caffeine: X:XX AM/PM" when null. Falls back to generic wording
+ *    when selected preset is deleted or hidden. Contextual past-curfew messages
+ *    pair coherently with the sleep estimate
  * 4. Daily caffeine total -- "Today: Xmg / 400mg" with green-to-red color gradient
  * 5. Half-life badge -- shows effective half-life, with threshold mg values when
  *    research thresholds enabled: "Half-life: 5hr | 41mg · 71mg"
@@ -32,11 +37,33 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
  * manual threshold, autonomic, or deep-sleep research value based on thresholdSource.
  * All computation is derived from drink records + current time (no stored state).
  */
+/**
+ * Resolve lastCallDrinkId to a drink object at render time (per D-08).
+ * Checks built-in presets first (by presetId), then custom presets (by id).
+ * Returns null if not found (deleted/hidden preset silently falls back per D-11).
+ */
+function resolveLastCallDrink(
+  lastCallDrinkId: string | null,
+  customPresets: CustomPreset[],
+): { name: string; caffeineMg: number; durationMinutes: number } | null {
+  if (!lastCallDrinkId) return null;
+
+  const builtIn = DRINK_PRESETS.find(p => p.presetId === lastCallDrinkId);
+  if (builtIn) return { name: builtIn.name, caffeineMg: builtIn.caffeineMg, durationMinutes: builtIn.durationMinutes };
+
+  const custom = customPresets.find(p => p.id === lastCallDrinkId);
+  if (custom) return { name: custom.name, caffeineMg: custom.caffeineMg, durationMinutes: custom.durationMinutes };
+
+  return null;
+}
+
 export function CaffeineStatus() {
   const now = useCurrentTime();
   const drinks = useCaffeineStore((s) => s.drinks);
   const settings = useCaffeineStore((s) => s.settings);
+  const customPresets = useCaffeineStore((s) => s.customPresets);
   const effectiveHalfLife = getEffectiveHalfLife(settings);
+  const lastCallDrink = resolveLastCallDrink(settings.lastCallDrinkId, customPresets);
 
   const currentMg = getCaffeineLevel(drinks, now, effectiveHalfLife);
   const effectiveThreshold = getEffectiveThreshold(settings);
@@ -48,7 +75,9 @@ export function CaffeineStatus() {
   const bedtimeStr = settings.targetBedtime ?? '00:00';
   const targetBedtimeMs = parseNextBedtime(bedtimeStr, now);
   const curfewResult = getCaffeineCurfew(
-    drinks, targetBedtimeMs, now, effectiveHalfLife, effectiveThreshold
+    drinks, targetBedtimeMs, now, effectiveHalfLife, effectiveThreshold,
+    lastCallDrink?.caffeineMg ?? 95,
+    lastCallDrink?.durationMinutes ?? 0,
   );
 
   // BED-01: Projected caffeine at bedtime
@@ -100,26 +129,28 @@ export function CaffeineStatus() {
       </div>
       <div className="mt-2 text-sm text-gray-500">
         {curfewResult.status === 'budget_exceeded' ? (
-          <p className="text-amber-600">Caffeine already above bedtime target</p>
+          <p className="text-amber-600">Already above bedtime target</p>
         ) : curfewResult.status === 'too_soon' ? (
           <p className="text-gray-400">Curfew has passed for tonight</p>
         ) : curfewResult.status === 'curfew_passed' ? (
           onTrackForBedtime ? (
-            <p className="text-gray-400">Past curfew for standard coffee</p>
+            <p className="text-gray-400">
+              {lastCallDrink
+                ? `Past last ${lastCallDrink.name}`
+                : 'Past curfew for standard coffee'}
+            </p>
           ) : (
             <p className="text-gray-400">
-              Caffeine curfew was{' '}
-              <span className="font-semibold text-gray-500">
-                {format(new Date(curfewResult.time), 'h:mm a')}
-              </span>
+              {lastCallDrink
+                ? <>Last {lastCallDrink.name} was{' '}<span className="font-semibold text-gray-500">{format(new Date(curfewResult.time), 'h:mm a')}</span></>
+                : <>Caffeine curfew was{' '}<span className="font-semibold text-gray-500">{format(new Date(curfewResult.time), 'h:mm a')}</span></>}
             </p>
           )
         ) : (
           <p>
-            Last call for caffeine:{' '}
-            <span className="font-semibold text-gray-700">
-              {format(new Date(curfewResult.time), 'h:mm a')}
-            </span>
+            {lastCallDrink
+              ? <>Last {lastCallDrink.name}:{' '}<span className="font-semibold text-gray-700">{format(new Date(curfewResult.time), 'h:mm a')}</span></>
+              : <>Last call for caffeine:{' '}<span className="font-semibold text-gray-700">{format(new Date(curfewResult.time), 'h:mm a')}</span></>}
           </p>
         )}
       </div>

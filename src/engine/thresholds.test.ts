@@ -20,6 +20,7 @@ const makeSettings = (overrides: Partial<Settings> = {}): Settings => ({
   showResearchThresholds: false,
   caffeineSensitivity: 'normal',
   thresholdSource: 'manual',
+  lastCallDrinkId: null,
   ...overrides,
 });
 

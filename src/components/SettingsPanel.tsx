@@ -2,6 +2,7 @@ import { useCaffeineStore } from '../store/caffeine-store';
 import { computeHalfLife } from '../engine/metabolism';
 import { getEffectiveThreshold } from '../engine/thresholds';
 import { CovariateForm } from './CovariateForm';
+import { DRINK_PRESETS } from '../data/presets';
 import type { CovariateSettings, CaffeineSensitivity, ThresholdSource } from '../engine/types';
 
 /**
@@ -62,6 +63,8 @@ function ToggleSwitch({
  * - Sleep threshold: number input (10-200mg) for the sleep-ready cutoff,
  *   disabled when linked to a research threshold source
  * - Target bedtime: time picker for curfew calculation
+ * - Last-call drink: native select picker (optgroup for My Drinks/Built-in)
+ *   for personalizing curfew display with a specific drink name and caffeine amount
  * - Research thresholds: toggle for research-backed threshold display,
  *   caffeine sensitivity selector (Low/Normal/High), and sleep threshold
  *   source selector (Manual/Autonomic/Deep Sleep)
@@ -72,6 +75,7 @@ function ToggleSwitch({
 export function SettingsPanel() {
   const settings = useCaffeineStore((s) => s.settings);
   const updateSettings = useCaffeineStore((s) => s.updateSettings);
+  const customPresets = useCaffeineStore((s) => s.customPresets);
 
   const handleCovariateChange = (updated: CovariateSettings) => {
     updateSettings({ covariates: updated });
@@ -203,6 +207,50 @@ export function SettingsPanel() {
               onChange={(e) => updateSettings({ targetBedtime: e.target.value })}
               className="block mt-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 font-normal normal-case tracking-normal min-h-[44px]"
             />
+          </label>
+        </div>
+
+        {/* Last-Call Drink (Phase 20, per D-01, D-02, D-03, D-04) */}
+        <div>
+          <label className="block">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
+              Last-Call Drink
+            </span>
+            <select
+              value={settings.lastCallDrinkId ?? ''}
+              onChange={(e) => updateSettings({ lastCallDrinkId: e.target.value || null })}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-900 min-h-[44px] bg-white"
+            >
+              <option value="">None (default 95mg)</option>
+              {customPresets.length > 0 && (
+                <optgroup label="My Drinks">
+                  {customPresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name} ({preset.caffeineMg}mg)
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {customPresets.length > 0 ? (
+                <optgroup label="Built-in">
+                  {DRINK_PRESETS.filter(
+                    (p) => !settings.hiddenPresetIds.includes(p.presetId)
+                  ).map((preset) => (
+                    <option key={preset.presetId} value={preset.presetId}>
+                      {preset.name} ({preset.caffeineMg}mg)
+                    </option>
+                  ))}
+                </optgroup>
+              ) : (
+                DRINK_PRESETS.filter(
+                  (p) => !settings.hiddenPresetIds.includes(p.presetId)
+                ).map((preset) => (
+                  <option key={preset.presetId} value={preset.presetId}>
+                    {preset.name} ({preset.caffeineMg}mg)
+                  </option>
+                ))
+              )}
+            </select>
           </label>
         </div>
 

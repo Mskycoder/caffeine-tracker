@@ -119,7 +119,7 @@ export function DecayCurveChart() {
     return Array.from(ids).sort((a, b) => {
       const drinkA = drinks.find((d) => d.id === a);
       const drinkB = drinks.find((d) => d.id === b);
-      return (drinkA?.timestamp ?? 0) - (drinkB?.timestamp ?? 0);
+      return (drinkA?.startedAt ?? 0) - (drinkB?.startedAt ?? 0);
     });
   }, [stackedData, drinks]);
 

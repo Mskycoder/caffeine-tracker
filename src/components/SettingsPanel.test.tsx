@@ -14,6 +14,7 @@ const defaultSettings = {
   showResearchThresholds: false,
   caffeineSensitivity: 'normal' as const,
   thresholdSource: 'manual' as const,
+  lastCallDrinkId: null,
 };
 
 describe('SettingsPanel', () => {

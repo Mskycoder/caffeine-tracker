@@ -705,6 +705,67 @@ describe('generateStackedCurveData with duration drinks', () => {
 });
 
 // ---------------------------------------------------------------------------
+// getCaffeineCurfew with durationMinutes parameter
+// ---------------------------------------------------------------------------
+describe('getCaffeineCurfew with durationMinutes parameter', () => {
+  it('durationMinutes=0 matches default behavior', () => {
+    const now = BASE_TIME;
+    const bedtime = now + 10 * 3_600_000;
+
+    const defaultResult = getCaffeineCurfew([], bedtime, now, 5, 50, 95);
+    const explicitZero = getCaffeineCurfew([], bedtime, now, 5, 50, 95, 0);
+
+    expect(defaultResult.status).toBe(explicitZero.status);
+    if (defaultResult.status === 'ok' && explicitZero.status === 'ok') {
+      expect(defaultResult.time).toBe(explicitZero.time);
+    }
+  });
+
+  it('durationMinutes=30 produces earlier curfew than instant', () => {
+    const now = BASE_TIME;
+    const bedtime = now + 10 * 3_600_000;
+
+    const instantResult = getCaffeineCurfew([], bedtime, now, 5, 50, 95, 0);
+    const durationResult = getCaffeineCurfew([], bedtime, now, 5, 50, 95, 30);
+
+    expect(instantResult.status).toBe('ok');
+    expect(durationResult.status).toBe('ok');
+    if (instantResult.status === 'ok' && durationResult.status === 'ok') {
+      // Duration drink pushes more caffeine toward bedtime, so curfew is earlier
+      expect(durationResult.time).toBeLessThan(instantResult.time);
+    }
+  });
+
+  it('durationMinutes=60 produces earlier curfew than durationMinutes=30', () => {
+    const now = BASE_TIME;
+    const bedtime = now + 10 * 3_600_000;
+
+    const dur30Result = getCaffeineCurfew([], bedtime, now, 5, 50, 95, 30);
+    const dur60Result = getCaffeineCurfew([], bedtime, now, 5, 50, 95, 60);
+
+    expect(dur30Result.status).toBe('ok');
+    expect(dur60Result.status).toBe('ok');
+    if (dur30Result.status === 'ok' && dur60Result.status === 'ok') {
+      // Longer duration = even earlier curfew
+      expect(dur60Result.time).toBeLessThan(dur30Result.time);
+    }
+  });
+
+  it('existing call sites without durationMinutes still work', () => {
+    const now = BASE_TIME;
+    const bedtime = now + 10 * 3_600_000;
+
+    // Call with just 6 positional args (no durationMinutes or ka)
+    const result = getCaffeineCurfew([], bedtime, now, 5, 50, 95);
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') {
+      expect(result.time).toBeGreaterThan(now);
+      expect(result.time).toBeLessThanOrEqual(bedtime);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // getDailyTotal unchanged by sub-dose expansion
 // ---------------------------------------------------------------------------
 describe('getDailyTotal unchanged', () => {
