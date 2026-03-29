@@ -16,3 +16,9 @@ export const NEGLIGIBLE_MG = 0.01;
 
 /** FDA recommended daily caffeine limit (mg). */
 export const FDA_DAILY_LIMIT_MG = 400;
+
+/** Auto-finish active drinks after 2 hours of no interaction. */
+export const AUTO_FINISH_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+
+/** Sub-dose interval matching chart step (PROJECTION_STEP_MS). Nyquist rate for chart rendering -- finer granularity wastes computation. */
+export const SUB_DOSE_INTERVAL_MS = 5 * 60_000;

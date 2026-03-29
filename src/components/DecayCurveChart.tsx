@@ -45,7 +45,12 @@ function StackedTooltip({ active, payload, label, drinks }: StackedTooltipProps)
               className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-gray-600">{drink?.name ?? 'Unknown'}</span>
+            <span className="text-gray-600">
+              {drink?.name ?? 'Unknown'}
+              {drink && drink.endedAt === undefined && (
+                <span className="text-purple-500 ml-1">(sipping)</span>
+              )}
+            </span>
             <span className="ml-auto font-medium">{Math.round(entry.value ?? 0)} mg</span>
           </div>
         );
@@ -64,7 +69,7 @@ function StackedTooltip({ active, payload, label, drinks }: StackedTooltipProps)
  *
  * Features:
  * - Stacked per-drink colored area chart (VIZ-05 / D-01)
- * - 48h window: ~24h past + ~24h future centered on now (D-02)
+ * - 36h window: ~12h past + ~24h future (D-02)
  * - Vertical dashed "Now" line separating past from projected (D-03)
  * - Horizontal dashed sleep threshold line at effective threshold mg (D-04 / VIZ-03 / D-10)
  * - Conditional research threshold lines: green autonomic + red deep sleep (THRS-02)
@@ -93,10 +98,11 @@ export function DecayCurveChart() {
     ? getCaffeineLevel(drinks, targetBedtimeMs, effectiveHalfLife)
     : 0;
 
-  // 48h window centered on now (~24h past + ~24h future)
-  const windowMs = 24 * 60 * 60 * 1000;
-  const startTime = now - windowMs;
-  const endTime = now + windowMs;
+  // 36h window: 12h past + 24h future
+  const pastWindowMs = 12 * 60 * 60 * 1000;
+  const futureWindowMs = 24 * 60 * 60 * 1000;
+  const startTime = now - pastWindowMs;
+  const endTime = now + futureWindowMs;
 
   const stackedData = generateStackedCurveData(
     drinks, startTime, endTime, PROJECTION_STEP_MS, effectiveHalfLife
@@ -148,15 +154,17 @@ export function DecayCurveChart() {
               width={40}
             />
             <Tooltip content={<StackedTooltip drinks={drinks} />} />
-            {/* VIZ-03: Sleep threshold reference line -- uses effective threshold (D-10) */}
-            {(() => {
+            {/* VIZ-03: Sleep threshold reference line -- uses effective threshold (D-10)
+                Hidden when research thresholds are enabled with non-manual source
+                to avoid duplicating the autonomic or deep sleep research line */}
+            {!(settings.showResearchThresholds && (settings.thresholdSource ?? 'manual') !== 'manual') && (() => {
               const effectiveThreshold = getEffectiveThreshold(settings);
               return (
                 <ReferenceLine
                   y={effectiveThreshold}
                   stroke="#f59e0b"
                   strokeDasharray="5 5"
-                  label={{ value: `${Math.round(effectiveThreshold)} mg`, position: 'right', fill: '#f59e0b', fontSize: 12 }}
+                  label={{ value: `${Math.round(effectiveThreshold)} mg`, position: 'insideRight', fill: '#f59e0b', fontSize: 12 }}
                 />
               );
             })()}
@@ -169,13 +177,13 @@ export function DecayCurveChart() {
                     y={thresholds.autonomicMg}
                     stroke="#16a34a"
                     strokeDasharray="5 5"
-                    label={{ value: `Autonomic: ${Math.round(thresholds.autonomicMg)}mg`, position: 'right', fill: '#16a34a', fontSize: 12 }}
+                    label={{ value: `Autonomic: ${Math.round(thresholds.autonomicMg)}mg`, position: 'insideRight', fill: '#16a34a', fontSize: 12, dy: -10 }}
                   />
                   <ReferenceLine
                     y={thresholds.deepSleepMg}
                     stroke="#ef4444"
                     strokeDasharray="5 5"
-                    label={{ value: `Deep sleep: ${Math.round(thresholds.deepSleepMg)}mg`, position: 'right', fill: '#ef4444', fontSize: 12 }}
+                    label={{ value: `Deep sleep: ${Math.round(thresholds.deepSleepMg)}mg`, position: 'insideRight', fill: '#ef4444', fontSize: 12, dy: -10 }}
                   />
                 </>
               );
@@ -199,7 +207,7 @@ export function DecayCurveChart() {
               x={now}
               stroke="#94a3b8"
               strokeDasharray="4 4"
-              label={{ value: 'Now', position: 'top', fill: '#94a3b8', fontSize: 12 }}
+              label={{ value: 'Now', position: 'insideTopLeft', fill: '#94a3b8', fontSize: 12 }}
             />
             {/* VIZ-05: Stacked per-drink colored areas */}
             {activeDrinkIds.map((drinkId) => (

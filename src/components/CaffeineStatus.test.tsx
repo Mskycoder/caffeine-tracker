@@ -37,7 +37,8 @@ describe('CaffeineStatus', () => {
         id: 'test-1',
         name: 'Espresso',
         caffeineMg: 200,
-        timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
+        startedAt: FIXED_NOW - 3_600_000, // 1 hour ago
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
     });
@@ -57,23 +58,24 @@ describe('CaffeineStatus', () => {
 
   it('shows on-track message when above threshold but will clear before bedtime', () => {
     // 200mg drink 1 hour ago with default bedtime 00:00 (midnight, 12h away).
-    // Sleep-ready ~10 PM, well before midnight -> "On track for your 12:00 AM bedtime"
+    // Sleep-ready ~10 PM, well before midnight -> "On track for 12:00 AM · Nmg"
     useCaffeineStore.setState({
       drinks: [{
         id: 'test-2',
         name: 'Espresso',
         caffeineMg: 200,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
     });
 
     render(<CaffeineStatus />);
 
-    // Should show bedtime-contextualized "On track" message
-    const onTrackText = screen.getByText(/On track for your/);
+    // Should show bedtime-contextualized "On track" message with dot separator
+    const onTrackText = screen.getByText(/On track for/);
     expect(onTrackText).toBeInTheDocument();
-    expect(onTrackText.textContent).toMatch(/On track for your \d{1,2}:\d{2} [AP]M bedtime/);
+    expect(onTrackText.textContent).toMatch(/On track for \d{1,2}:\d{2} [AP]M \u00b7 \d+mg/);
   });
 
   it('shows warning when caffeine will not clear before bedtime', () => {
@@ -84,7 +86,8 @@ describe('CaffeineStatus', () => {
         id: 'test-wont-clear',
         name: 'Energy Drink',
         caffeineMg: 500,
-        timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
+        startedAt: FIXED_NOW - 3_600_000, // 1 hour ago
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
@@ -93,9 +96,9 @@ describe('CaffeineStatus', () => {
     render(<CaffeineStatus />);
 
     // Sleep-ready time will be many hours from now, well past 2 PM bedtime
-    const warningText = screen.getByText(/Won't be clear until/);
+    const warningText = screen.getByText(/Won't clear until/);
     expect(warningText).toBeInTheDocument();
-    expect(warningText.textContent).toMatch(/Won't be clear until \d{1,2}:\d{2} [AP]M/);
+    expect(warningText.textContent).toMatch(/Won't clear until \d{1,2}:\d{2} [AP]M \u00b7 \d+mg/);
   });
 
   it('shows clear to sleep when below threshold', () => {
@@ -105,14 +108,15 @@ describe('CaffeineStatus', () => {
         id: 'test-3',
         name: 'Tea',
         caffeineMg: 10,
-        timestamp: FIXED_NOW - 36_000_000, // 10 hours ago
+        startedAt: FIXED_NOW - 36_000_000, // 10 hours ago
+        endedAt: FIXED_NOW - 36_000_000,
         presetId: 'tea',
       }],
     });
 
     render(<CaffeineStatus />);
 
-    expect(screen.getByText("You're clear to sleep")).toBeInTheDocument();
+    expect(screen.getByText(/Clear to sleep/)).toBeInTheDocument();
   });
 
   it('shows 0 mg when no drinks logged', () => {
@@ -123,7 +127,7 @@ describe('CaffeineStatus', () => {
     const bigNumber = mgText.closest('p')!;
     expect(bigNumber.textContent).toContain('0');
 
-    expect(screen.getByText("You're clear to sleep")).toBeInTheDocument();
+    expect(screen.getByText(/Clear to sleep/)).toBeInTheDocument();
   });
 
   it('shows curfew time when caffeine budget remains', () => {
@@ -133,7 +137,8 @@ describe('CaffeineStatus', () => {
         id: 'test-curfew-1',
         name: 'Tea',
         caffeineMg: 30,
-        timestamp: FIXED_NOW - 6 * 3_600_000, // 6 hours ago
+        startedAt: FIXED_NOW - 6 * 3_600_000, // 6 hours ago
+        endedAt: FIXED_NOW - 6 * 3_600_000,
         presetId: 'tea',
       }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
@@ -150,7 +155,8 @@ describe('CaffeineStatus', () => {
         id: 'test-curfew-2',
         name: 'Mega Coffee',
         caffeineMg: 5000,
-        timestamp: FIXED_NOW - 3_600_000, // 1 hour ago
+        startedAt: FIXED_NOW - 3_600_000, // 1 hour ago
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
@@ -178,7 +184,8 @@ describe('CaffeineStatus', () => {
         id: 'test-daily-1',
         name: 'Cold Brew',
         caffeineMg: 200,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: 'cold-brew',
       }],
     });
@@ -203,7 +210,8 @@ describe('CaffeineStatus', () => {
         id: 'test-daily-2',
         name: 'Drip Coffee',
         caffeineMg: 95,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: 'drip-coffee',
       }],
     });
@@ -242,9 +250,8 @@ describe('CaffeineStatus', () => {
   it('shows 0mg at bedtime when clear to sleep', () => {
     // Default: no drinks, bedtime '00:00' -> already clear
     render(<CaffeineStatus />);
-    const bedtimeText = screen.getByText(/0mg at bedtime/);
-    expect(bedtimeText).toBeInTheDocument();
-    expect(bedtimeText.closest('p')!.className).toContain('text-gray-400');
+    const statusLine = screen.getByText(/Clear to sleep/);
+    expect(statusLine.textContent).toContain('0mg at bedtime');
   });
 
   it('shows bedtime mg when on track for bedtime', () => {
@@ -254,16 +261,17 @@ describe('CaffeineStatus', () => {
         id: 'test-bed-ontrack',
         name: 'Espresso',
         caffeineMg: 200,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
     });
 
     render(<CaffeineStatus />);
-    const bedtimeText = screen.getByText(/\d+mg at bedtime/);
-    expect(bedtimeText).toBeInTheDocument();
-    expect(bedtimeText.closest('p')!.className).toContain('text-gray-400');
+    const statusLine = screen.getByText(/On track for/);
+    expect(statusLine.textContent).toMatch(/\d+mg$/);
+    expect(statusLine.textContent).toContain('\u00b7');
   });
 
   it('shows bedtime mg in amber when won\'t clear before bedtime', () => {
@@ -273,16 +281,18 @@ describe('CaffeineStatus', () => {
         id: 'test-bed-wontclear',
         name: 'Energy Drink',
         caffeineMg: 500,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '14:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
     });
 
     render(<CaffeineStatus />);
-    const bedtimeText = screen.getByText(/\d+mg at bedtime/);
-    expect(bedtimeText).toBeInTheDocument();
-    expect(bedtimeText.closest('p')!.className).toContain('text-amber-600');
+    const statusLine = screen.getByText(/Won't clear until/);
+    expect(statusLine.textContent).toMatch(/\d+mg$/);
+    expect(statusLine.textContent).toContain('\u00b7');
+    expect(statusLine.className).toContain('text-amber-600');
   });
 
   it('does not show bedtime mg when targetBedtime is null', () => {
@@ -292,7 +302,8 @@ describe('CaffeineStatus', () => {
     });
 
     render(<CaffeineStatus />);
-    expect(screen.queryByText(/mg at bedtime/)).toBeNull();
+    const statusLine = screen.getByText(/Clear to sleep/);
+    expect(statusLine.textContent).not.toContain('\u00b7');
   });
 
   // --- Zone badge tests (THRS-02) ---
@@ -329,7 +340,8 @@ describe('CaffeineStatus', () => {
         id: 'test-zone-mid',
         name: 'Coffee',
         caffeineMg: 100,
-        timestamp: FIXED_NOW - 6 * 3_600_000,
+        startedAt: FIXED_NOW - 6 * 3_600_000,
+        endedAt: FIXED_NOW - 6 * 3_600_000,
         presetId: null,
       }],
       settings: {
@@ -352,7 +364,8 @@ describe('CaffeineStatus', () => {
         id: 'test-zone-high',
         name: 'Mega Coffee',
         caffeineMg: 500,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
       settings: {
@@ -368,6 +381,37 @@ describe('CaffeineStatus', () => {
     expect(badge.className).toContain('text-red-500');
   });
 
+  // --- Half-life badge threshold tests (DASH-03) ---
+
+  it('shows threshold mg values in badge when showResearchThresholds is true', () => {
+    useCaffeineStore.setState({
+      drinks: [],
+      settings: {
+        halfLifeHours: 5, thresholdMg: 50, targetBedtime: '00:00',
+        metabolismMode: 'simple' as const, covariates: { ...defaultCovariates },
+        hiddenPresetIds: [], showResearchThresholds: true,
+        caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const,
+      },
+    });
+
+    render(<CaffeineStatus />);
+    const badge = screen.getByText(/Half-life:/);
+    // At 70kg normal: autonomicMg ~ 41, deepSleepMg ~ 71
+    expect(badge.textContent).toMatch(/Half-life: 5hr \| \d+mg \u00b7 \d+mg/);
+    // Verify green and red inline styles on the threshold spans
+    const greenSpan = badge.querySelector('span[style*="#16a34a"]');
+    const redSpan = badge.querySelector('span[style*="#ef4444"]');
+    expect(greenSpan).not.toBeNull();
+    expect(redSpan).not.toBeNull();
+  });
+
+  it('does not show threshold mg in badge when showResearchThresholds is false', () => {
+    render(<CaffeineStatus />);
+    const badge = screen.getByText(/Half-life:/);
+    expect(badge.textContent).toBe('Half-life: 5hr');
+    expect(badge.querySelector('span[style*="#16a34a"]')).toBeNull();
+  });
+
   it('uses effective threshold for sleep-ready computation when thresholdSource is autonomic', () => {
     // With thresholdSource 'autonomic', effective threshold is ~41mg (at 70kg normal)
     // A drink that decays below 41mg earlier than 50mg should show "clear to sleep" sooner
@@ -381,7 +425,8 @@ describe('CaffeineStatus', () => {
         id: 'test-eff-thresh',
         name: 'Light Tea',
         caffeineMg: 50,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+        endedAt: FIXED_NOW - 3_600_000,
         presetId: null,
       }],
       settings: {

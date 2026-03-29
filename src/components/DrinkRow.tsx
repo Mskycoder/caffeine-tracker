@@ -45,9 +45,9 @@ export function DrinkRow({
   // Initialize editTimestamp when entering edit mode
   useEffect(() => {
     if (isEditing) {
-      setEditTimestamp(epochToDatetimeLocal(drink.timestamp));
+      setEditTimestamp(epochToDatetimeLocal(drink.startedAt));
     }
-  }, [isEditing, drink.timestamp]);
+  }, [isEditing, drink.startedAt]);
 
   if (isEditing) {
     return (
@@ -88,7 +88,12 @@ export function DrinkRow({
         <span className="text-sm font-medium text-gray-900">{drink.name}</span>
         <div className="flex items-center gap-3 text-sm text-gray-500">
           <span>{drink.caffeineMg} mg</span>
-          <span>{format(new Date(drink.timestamp), 'h:mm a')}</span>
+          <span>{format(new Date(drink.startedAt), 'h:mm a')}</span>
+          {drink.endedAt !== undefined && drink.endedAt !== drink.startedAt && (
+            <span className="text-gray-400 text-sm">
+              {'\u00B7'} {Math.round((drink.endedAt - drink.startedAt) / 60000)}m
+            </span>
+          )}
           <button
             type="button"
             onClick={() => onStartEdit(drink)}

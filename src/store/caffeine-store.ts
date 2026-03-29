@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { DrinkEntry, Settings, CustomPreset, DrinkSchedule, CalculatorParams } from '../engine/types';
 import { DEFAULT_COVARIATES } from '../engine/types';
 import { getScheduledDrinksToLog, formatDateKey } from '../engine/schedule';
+import { AUTO_FINISH_TIMEOUT_MS } from '../engine/constants';
 
 /**
  * Caffeine store state shape.
@@ -11,7 +12,7 @@ import { getScheduledDrinksToLog, formatDateKey } from '../engine/schedule';
  * Actions: CRUD for drinks, CRUD for custom presets, CRUD for schedules, runCatchUp, partial update for settings.
  *
  * Persisted to localStorage via Zustand persist middleware (TECH-01).
- * Schema version 6. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates), v4->v5 (schedules), v5->v6 (hiddenPresetIds, showResearchThresholds, caffeineSensitivity, thresholdSource).
+ * Schema version 7. Migrations: v1->v2 (targetBedtime), v2->v3 (customPresets), v3->v4 (metabolismMode, covariates), v4->v5 (schedules), v5->v6 (hiddenPresetIds, showResearchThresholds, caffeineSensitivity, thresholdSource), v6->v7 (timestamp->startedAt, endedAt, durationMinutes).
  */
 interface CaffeineState {
   drinks: DrinkEntry[];
@@ -23,7 +24,7 @@ interface CaffeineState {
   updateDrink: (id: string, updates: Partial<Omit<DrinkEntry, 'id'>>) => void;
   updateSettings: (partial: Partial<Settings>) => void;
   clearDrinks: () => void;
-  addCustomPreset: (name: string, caffeineMg: number, calculatorParams?: CalculatorParams) => void;
+  addCustomPreset: (name: string, caffeineMg: number, calculatorParams?: CalculatorParams, durationMinutes?: number) => void;
   updateCustomPreset: (id: string, updates: Partial<Pick<CustomPreset, 'name' | 'caffeineMg' | 'calculatorParams'>>) => void;
   removeCustomPreset: (id: string) => void;
   addSchedule: (schedule: Omit<DrinkSchedule, 'id' | 'paused' | 'lastRunDate'>) => void;
@@ -31,6 +32,9 @@ interface CaffeineState {
   removeSchedule: (id: string) => void;
   toggleSchedulePause: (id: string) => void;
   runCatchUp: (currentTime: number) => number;
+  startDrink: (drink: Omit<DrinkEntry, 'id' | 'endedAt'>) => void;
+  finishDrink: (id: string, endedAt?: number) => void;
+  autoFinishDrinks: (currentTime: number) => number;
 }
 
 export const useCaffeineStore = create<CaffeineState>()(
@@ -75,7 +79,7 @@ export const useCaffeineStore = create<CaffeineState>()(
 
       clearDrinks: () => set({ drinks: [] }),
 
-      addCustomPreset: (name, caffeineMg, calculatorParams?) =>
+      addCustomPreset: (name, caffeineMg, calculatorParams?, durationMinutes?) =>
         set((state) => ({
           customPresets: [
             ...state.customPresets,
@@ -83,6 +87,7 @@ export const useCaffeineStore = create<CaffeineState>()(
               id: `custom-${crypto.randomUUID()}`,
               name,
               caffeineMg,
+              durationMinutes: durationMinutes ?? 0,
               ...(calculatorParams ? { calculatorParams } : {}),
             },
           ],
@@ -127,6 +132,34 @@ export const useCaffeineStore = create<CaffeineState>()(
           ),
         })),
 
+      startDrink: (drink) =>
+        set((state) => ({
+          drinks: [...state.drinks, { ...drink, id: crypto.randomUUID(), endedAt: undefined }],
+        })),
+
+      finishDrink: (id, endedAt) =>
+        set((state) => ({
+          drinks: state.drinks.map((d) =>
+            d.id === id ? { ...d, endedAt: endedAt ?? Date.now() } : d,
+          ),
+        })),
+
+      autoFinishDrinks: (currentTime) => {
+        const state = get();
+        const toFinish = state.drinks.filter(
+          (d) => d.endedAt === undefined && (currentTime - d.startedAt) > AUTO_FINISH_TIMEOUT_MS,
+        );
+        if (toFinish.length === 0) return 0;
+        set((state) => ({
+          drinks: state.drinks.map((d) =>
+            d.endedAt === undefined && (currentTime - d.startedAt) > AUTO_FINISH_TIMEOUT_MS
+              ? { ...d, endedAt: d.startedAt + AUTO_FINISH_TIMEOUT_MS }
+              : d,
+          ),
+        }));
+        return toFinish.length;
+      },
+
       runCatchUp: (currentTime) => {
         const state = get();
         const { drinks, processedScheduleIds } = getScheduledDrinksToLog(
@@ -151,7 +184,7 @@ export const useCaffeineStore = create<CaffeineState>()(
     }),
     {
       name: 'caffeine-tracker-storage',
-      version: 6,
+      version: 7,
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>;
         if (version < 2) {
@@ -199,6 +232,26 @@ export const useCaffeineStore = create<CaffeineState>()(
             caffeineSensitivity: settings.caffeineSensitivity ?? 'normal',
             thresholdSource: settings.thresholdSource ?? 'manual',
           };
+        }
+        if (version < 7) {
+          // v6 -> v7: rename timestamp -> startedAt, add endedAt (Phase 19)
+          const drinks = (state.drinks as Array<Record<string, unknown>>).map((d) => ({
+            ...d,
+            startedAt: d.timestamp ?? d.startedAt,  // handle both old and new format
+            endedAt: d.timestamp ?? d.startedAt,    // existing drinks are instant: endedAt = startedAt
+          }));
+          // Remove old timestamp field
+          for (const d of drinks) {
+            delete (d as Record<string, unknown>).timestamp;
+          }
+          state.drinks = drinks;
+
+          // Add durationMinutes to custom presets
+          const customPresets = (state.customPresets as Array<Record<string, unknown>>).map((p) => ({
+            ...p,
+            durationMinutes: (p as Record<string, unknown>).durationMinutes ?? 0,
+          }));
+          state.customPresets = customPresets;
         }
         return state as unknown as CaffeineState;
       },

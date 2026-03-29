@@ -7,6 +7,7 @@ import {
   NEGLIGIBLE_MG,
 } from './constants';
 import type { DrinkEntry, DrinkCurvePoint, CurfewResult } from './types';
+import { expandAllDrinks } from './subdose';
 
 /**
  * Parse "HH:mm" bedtime string into the next occurrence as epoch ms.
@@ -69,7 +70,8 @@ export function getCaffeineCurfew(
       id: 'curfew-calc',
       name: 'Curfew',
       caffeineMg: standardDoseMg,
-      timestamp: t,
+      startedAt: t,
+      endedAt: t,
       presetId: null,
     };
     const contribution = singleDrinkLevel(fakeDrink, targetBedtimeMs, halfLifeHours, ka);
@@ -109,7 +111,7 @@ export function singleDrinkLevel(
   halfLifeHours: number,
   ka: number = DEFAULT_KA,
 ): number {
-  const elapsedMs = atTime - drink.timestamp;
+  const elapsedMs = atTime - drink.startedAt;
   if (elapsedMs <= 0) return 0;
 
   const elapsedHours = elapsedMs / 3_600_000;
@@ -132,6 +134,7 @@ export function singleDrinkLevel(
 /**
  * Total caffeine from all drinks via superposition (ENG-02).
  * Each drink's curve is independent; total is their sum.
+ * Duration drinks are transparently expanded into sub-doses before summation.
  */
 export function getCaffeineLevel(
   drinks: DrinkEntry[],
@@ -139,7 +142,8 @@ export function getCaffeineLevel(
   halfLifeHours: number,
   ka: number = DEFAULT_KA,
 ): number {
-  return drinks.reduce(
+  const expanded = expandAllDrinks(drinks, atTime);
+  return expanded.reduce(
     (total, drink) => total + singleDrinkLevel(drink, atTime, halfLifeHours, ka),
     0,
   );
@@ -178,8 +182,11 @@ export function getSleepReadyTime(
  * Returns DrinkCurvePoint[] where each point has a `total` and per-drink
  * keys (keyed by drink.id) with individual caffeine contributions.
  *
+ * Duration drinks are expanded into sub-doses that share the parent drink's ID,
+ * so multiple sub-doses accumulate into a single chart layer per drink.
+ *
  * Drink keys are omitted when:
- * - The point time is before the drink's timestamp (not yet consumed)
+ * - The point time is before the drink's startedAt (not yet consumed)
  * - The contribution is below NEGLIGIBLE_MG threshold
  *
  * Suitable for Recharts stacked AreaChart visualization.
@@ -192,14 +199,15 @@ export function generateStackedCurveData(
   halfLifeHours: number,
   ka: number = DEFAULT_KA,
 ): DrinkCurvePoint[] {
+  const expanded = expandAllDrinks(drinks, startTime);
   const points: DrinkCurvePoint[] = [];
 
   for (let t = startTime; t <= endTime; t += stepMs) {
     const point: DrinkCurvePoint = { time: t, total: 0 };
-    for (const drink of drinks) {
+    for (const drink of expanded) {
       const level = singleDrinkLevel(drink, t, halfLifeHours, ka);
       if (level > NEGLIGIBLE_MG) {
-        point[drink.id] = level;
+        point[drink.id] = (point[drink.id] as number ?? 0) + level;
         point.total += level;
       }
     }
@@ -219,6 +227,6 @@ export function generateStackedCurveData(
 export function getDailyTotal(drinks: DrinkEntry[], now: number): number {
   const todayStart = startOfDay(new Date(now)).getTime();
   return drinks
-    .filter((d) => d.timestamp >= todayStart)
+    .filter((d) => d.startedAt >= todayStart)
     .reduce((sum, d) => sum + d.caffeineMg, 0);
 }

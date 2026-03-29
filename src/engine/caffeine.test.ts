@@ -17,7 +17,8 @@ function makeDrink(overrides: Partial<DrinkEntry> = {}): DrinkEntry {
     id: 'test-1',
     name: 'Test Coffee',
     caffeineMg: 95,
-    timestamp: BASE_TIME,
+    startedAt: BASE_TIME,
+    endedAt: BASE_TIME,
     presetId: null,
     ...overrides,
   };
@@ -28,7 +29,7 @@ function makeDrink(overrides: Partial<DrinkEntry> = {}): DrinkEntry {
 // ---------------------------------------------------------------------------
 describe('singleDrinkLevel', () => {
   it('returns 0 for future drinks (elapsed time <= 0)', () => {
-    const drink = makeDrink({ timestamp: BASE_TIME + 3_600_000 });
+    const drink = makeDrink({ startedAt: BASE_TIME + 3_600_000, endedAt: BASE_TIME + 3_600_000 });
     expect(singleDrinkLevel(drink, BASE_TIME, 5)).toBe(0);
   });
 
@@ -103,8 +104,8 @@ describe('getCaffeineLevel', () => {
   });
 
   it('sum of individual drink levels equals total (additivity)', () => {
-    const drink1 = makeDrink({ id: 'd1', timestamp: BASE_TIME });
-    const drink2 = makeDrink({ id: 'd2', timestamp: BASE_TIME + 3_600_000 });
+    const drink1 = makeDrink({ id: 'd1', startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const drink2 = makeDrink({ id: 'd2', startedAt: BASE_TIME + 3_600_000, endedAt: BASE_TIME + 3_600_000 });
     const atTime = BASE_TIME + 2 * 3_600_000;
 
     const level1 = singleDrinkLevel(drink1, atTime, 5);
@@ -115,8 +116,8 @@ describe('getCaffeineLevel', () => {
   });
 
   it('two drinks at different times produce correct stacked total', () => {
-    const drink1 = makeDrink({ id: 'd1', caffeineMg: 95, timestamp: BASE_TIME });
-    const drink2 = makeDrink({ id: 'd2', caffeineMg: 150, timestamp: BASE_TIME + 2 * 3_600_000 });
+    const drink1 = makeDrink({ id: 'd1', caffeineMg: 95, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const drink2 = makeDrink({ id: 'd2', caffeineMg: 150, startedAt: BASE_TIME + 2 * 3_600_000, endedAt: BASE_TIME + 2 * 3_600_000 });
     const queryTime = BASE_TIME + 3 * 3_600_000;
 
     const total = getCaffeineLevel([drink1, drink2], queryTime, 5);
@@ -130,8 +131,8 @@ describe('getCaffeineLevel', () => {
   });
 
   it('each drink decays independently from its own timestamp', () => {
-    const drink1 = makeDrink({ id: 'd1', caffeineMg: 100, timestamp: BASE_TIME });
-    const drink2 = makeDrink({ id: 'd2', caffeineMg: 100, timestamp: BASE_TIME + 3_600_000 });
+    const drink1 = makeDrink({ id: 'd1', caffeineMg: 100, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const drink2 = makeDrink({ id: 'd2', caffeineMg: 100, startedAt: BASE_TIME + 3_600_000, endedAt: BASE_TIME + 3_600_000 });
 
     // At 30 min after drink1: drink1 is absorbing, drink2 hasn't happened yet
     const atTime = BASE_TIME + 30 * 60_000;
@@ -155,7 +156,7 @@ describe('getSleepReadyTime', () => {
 
   it('returns null when current level is below threshold (old drink)', () => {
     // A small drink many hours ago should be well below 50mg
-    const drink = makeDrink({ caffeineMg: 50, timestamp: BASE_TIME - 24 * 3_600_000 });
+    const drink = makeDrink({ caffeineMg: 50, startedAt: BASE_TIME - 24 * 3_600_000, endedAt: BASE_TIME - 24 * 3_600_000 });
     const result = getSleepReadyTime([drink], BASE_TIME, 5, 50);
     expect(result).toBeNull();
   });
@@ -266,7 +267,7 @@ describe('getCaffeineCurfew', () => {
   it('massive existing caffeine returns budget_exceeded', () => {
     const now = BASE_TIME + 3_600_000; // 1 hour after the drink
     const bedtime = now + 10 * 3_600_000;
-    const hugeDrink = makeDrink({ caffeineMg: 10_000, timestamp: BASE_TIME });
+    const hugeDrink = makeDrink({ caffeineMg: 10_000, startedAt: BASE_TIME, endedAt: BASE_TIME });
 
     const result = getCaffeineCurfew([hugeDrink], bedtime, now, 5, 50);
 
@@ -274,7 +275,7 @@ describe('getCaffeineCurfew', () => {
   });
 
   it('at the returned curfew time, a 95mg drink contribution + existing at bedtime <= threshold', () => {
-    const drink = makeDrink({ caffeineMg: 95, timestamp: BASE_TIME });
+    const drink = makeDrink({ caffeineMg: 95, startedAt: BASE_TIME, endedAt: BASE_TIME });
     const now = BASE_TIME + 2 * 3_600_000; // 2 hours later
     const bedtime = now + 10 * 3_600_000;
 
@@ -288,14 +289,14 @@ describe('getCaffeineCurfew', () => {
     const fakeDrink = makeDrink({
       id: 'verify',
       caffeineMg: 95,
-      timestamp: result.time,
+      startedAt: result.time, endedAt: result.time,
     });
     const newContribution = singleDrinkLevel(fakeDrink, bedtime, 5);
     expect(existingAtBedtime + newContribution).toBeLessThanOrEqual(50 + 0.1); // small epsilon for step granularity
   });
 
   it('bedtime very soon (5 minutes from now) with moderate existing caffeine returns budget_exceeded', () => {
-    const drink = makeDrink({ caffeineMg: 200, timestamp: BASE_TIME });
+    const drink = makeDrink({ caffeineMg: 200, startedAt: BASE_TIME, endedAt: BASE_TIME });
     const now = BASE_TIME + 3_600_000; // 1 hour later, caffeine is high
     const bedtime = now + 5 * 60_000; // 5 minutes from now
 
@@ -307,7 +308,7 @@ describe('getCaffeineCurfew', () => {
   });
 
   it('standard scenario: 95mg drink 2 hours ago, bedtime in 10 hours, threshold 50mg', () => {
-    const drink = makeDrink({ caffeineMg: 95, timestamp: BASE_TIME });
+    const drink = makeDrink({ caffeineMg: 95, startedAt: BASE_TIME, endedAt: BASE_TIME });
     const now = BASE_TIME + 2 * 3_600_000;
     const bedtime = now + 10 * 3_600_000;
 
@@ -321,7 +322,7 @@ describe('getCaffeineCurfew', () => {
 
   it('returns budget_exceeded when existing caffeine at bedtime exceeds threshold', () => {
     // If bedtime is close and existing caffeine is moderate, there may be no valid time from now
-    const drink = makeDrink({ caffeineMg: 300, timestamp: BASE_TIME });
+    const drink = makeDrink({ caffeineMg: 300, startedAt: BASE_TIME, endedAt: BASE_TIME });
     const now = BASE_TIME + 3_600_000;
     // Bedtime just 2 hours away with 300mg drink absorbed
     const bedtime = now + 2 * 3_600_000;
@@ -356,7 +357,7 @@ describe('getCaffeineCurfew', () => {
 
   it('distinguishes budget_exceeded from curfew_passed correctly', () => {
     // budget_exceeded: high existing caffeine, long time to bedtime
-    const hugeDrink = makeDrink({ caffeineMg: 5000, timestamp: BASE_TIME });
+    const hugeDrink = makeDrink({ caffeineMg: 5000, startedAt: BASE_TIME, endedAt: BASE_TIME });
     const now = BASE_TIME + 3_600_000;
     const bedtime = now + 10 * 3_600_000;
 
@@ -439,8 +440,8 @@ describe('generateStackedCurveData', () => {
   });
 
   it('with two drinks: each point drink keys sum to point.total', () => {
-    const drink1 = makeDrink({ id: 'd1', caffeineMg: 95, timestamp: BASE_TIME });
-    const drink2 = makeDrink({ id: 'd2', caffeineMg: 150, timestamp: BASE_TIME + 30 * 60_000 });
+    const drink1 = makeDrink({ id: 'd1', caffeineMg: 95, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const drink2 = makeDrink({ id: 'd2', caffeineMg: 150, startedAt: BASE_TIME + 30 * 60_000, endedAt: BASE_TIME + 30 * 60_000 });
     const startTime = BASE_TIME;
     const endTime = BASE_TIME + 3 * 3_600_000;
     const data = generateStackedCurveData([drink1, drink2], startTime, endTime, stepMs, 5);
@@ -458,7 +459,7 @@ describe('generateStackedCurveData', () => {
 
   it('omits drink keys from points before drink.timestamp (drink not yet consumed)', () => {
     // Drink consumed 1 hour after start
-    const drink = makeDrink({ id: 'late-drink', caffeineMg: 95, timestamp: BASE_TIME + 3_600_000 });
+    const drink = makeDrink({ id: 'late-drink', caffeineMg: 95, startedAt: BASE_TIME + 3_600_000, endedAt: BASE_TIME + 3_600_000 });
     const startTime = BASE_TIME;
     const endTime = BASE_TIME + 3 * 3_600_000;
     const data = generateStackedCurveData([drink], startTime, endTime, stepMs, 5);
@@ -473,7 +474,7 @@ describe('generateStackedCurveData', () => {
 
   it('omits drink keys below NEGLIGIBLE_MG threshold', () => {
     // Tiny dose many hours ago -- should be negligible
-    const drink = makeDrink({ id: 'tiny', caffeineMg: 0.001, timestamp: BASE_TIME });
+    const drink = makeDrink({ id: 'tiny', caffeineMg: 0.001, startedAt: BASE_TIME, endedAt: BASE_TIME });
     const startTime = BASE_TIME + 48 * 3_600_000; // 48 hours later
     const endTime = startTime + 3_600_000;
     const data = generateStackedCurveData([drink], startTime, endTime, stepMs, 5);
@@ -505,9 +506,9 @@ describe('getDailyTotal', () => {
 
   it('sums only drinks with timestamp >= startOfDay(now)', () => {
     const todayStart = startOfDay(new Date(BASE_TIME)).getTime();
-    const todayDrink1 = makeDrink({ id: 'd1', caffeineMg: 95, timestamp: todayStart + 3_600_000 });
-    const todayDrink2 = makeDrink({ id: 'd2', caffeineMg: 150, timestamp: todayStart + 5 * 3_600_000 });
-    const yesterdayDrink = makeDrink({ id: 'old', caffeineMg: 200, timestamp: todayStart - 3_600_000 });
+    const todayDrink1 = makeDrink({ id: 'd1', caffeineMg: 95, startedAt: todayStart + 3_600_000, endedAt: todayStart + 3_600_000 });
+    const todayDrink2 = makeDrink({ id: 'd2', caffeineMg: 150, startedAt: todayStart + 5 * 3_600_000, endedAt: todayStart + 5 * 3_600_000 });
+    const yesterdayDrink = makeDrink({ id: 'old', caffeineMg: 200, startedAt: todayStart - 3_600_000, endedAt: todayStart - 3_600_000 });
 
     const total = getDailyTotal([todayDrink1, todayDrink2, yesterdayDrink], BASE_TIME);
     expect(total).toBe(95 + 150);
@@ -515,14 +516,14 @@ describe('getDailyTotal', () => {
 
   it('excludes drinks from yesterday', () => {
     const todayStart = startOfDay(new Date(BASE_TIME)).getTime();
-    const yesterdayDrink = makeDrink({ caffeineMg: 200, timestamp: todayStart - 1 }); // 1ms before today
+    const yesterdayDrink = makeDrink({ caffeineMg: 200, startedAt: todayStart - 1, endedAt: todayStart - 1 }); // 1ms before today
     expect(getDailyTotal([yesterdayDrink], BASE_TIME)).toBe(0);
   });
 
   it('includes drinks from earlier today regardless of how many hours ago', () => {
     const todayStart = startOfDay(new Date(BASE_TIME)).getTime();
     // Drink at the very start of today
-    const earlyDrink = makeDrink({ caffeineMg: 100, timestamp: todayStart });
+    const earlyDrink = makeDrink({ caffeineMg: 100, startedAt: todayStart, endedAt: todayStart });
     // Query at end of day (23:59)
     const lateNow = todayStart + 23 * 3_600_000 + 59 * 60_000;
     expect(getDailyTotal([earlyDrink], lateNow)).toBe(100);
@@ -530,7 +531,199 @@ describe('getDailyTotal', () => {
 
   it('includes a drink logged exactly at startOfDay boundary', () => {
     const todayStart = startOfDay(new Date(BASE_TIME)).getTime();
-    const boundaryDrink = makeDrink({ caffeineMg: 50, timestamp: todayStart });
+    const boundaryDrink = makeDrink({ caffeineMg: 50, startedAt: todayStart, endedAt: todayStart });
     expect(getDailyTotal([boundaryDrink], BASE_TIME)).toBe(50);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCaffeineLevel with duration drinks (sub-dose integration)
+// ---------------------------------------------------------------------------
+describe('getCaffeineLevel with duration drinks', () => {
+  it('30-min duration drink returns a lower peak than same drink as instant', () => {
+    const instantDrink = makeDrink({ caffeineMg: 95, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const durationDrink = makeDrink({
+      caffeineMg: 95,
+      startedAt: BASE_TIME,
+      endedAt: BASE_TIME + 30 * 60_000,
+    });
+
+    // At 20 minutes after start: instant has single bolus absorbing, duration has partial sub-doses
+    const atTime = BASE_TIME + 20 * 60_000;
+    const instantLevel = getCaffeineLevel([instantDrink], atTime, 5);
+    const durationLevel = getCaffeineLevel([durationDrink], atTime, 5);
+
+    // Duration drink should produce LOWER level because absorption is spread out
+    expect(durationLevel).toBeLessThan(instantLevel);
+    expect(durationLevel).toBeGreaterThan(0);
+  });
+
+  it('instant drink returns same result as before integration (regression check)', () => {
+    const drink = makeDrink({ caffeineMg: 95, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const atTime = BASE_TIME + 3_600_000; // 1 hour after
+
+    const level = getCaffeineLevel([drink], atTime, 5);
+    const expected = singleDrinkLevel(drink, atTime, 5);
+
+    expect(level).toBeCloseTo(expected, 10);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSleepReadyTime with duration drinks
+// ---------------------------------------------------------------------------
+describe('getSleepReadyTime with duration drinks', () => {
+  it('30-min duration drink returns a later sleep-ready time than same drink as instant', () => {
+    const instantDrink = makeDrink({ caffeineMg: 200, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const durationDrink = makeDrink({
+      caffeineMg: 200,
+      startedAt: BASE_TIME,
+      endedAt: BASE_TIME + 30 * 60_000,
+    });
+
+    const fromTime = BASE_TIME + 3_600_000; // 1 hour after start
+    const instantReady = getSleepReadyTime([instantDrink], fromTime, 5, 50);
+    const durationReady = getSleepReadyTime([durationDrink], fromTime, 5, 50);
+
+    expect(instantReady).not.toBeNull();
+    expect(durationReady).not.toBeNull();
+    // Duration drink's last sub-dose is absorbed later, so sleep-ready is later
+    expect(durationReady!).toBeGreaterThan(instantReady!);
+  });
+
+  it('instant drinks return same result as before (regression)', () => {
+    const drink = makeDrink({ caffeineMg: 200, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const fromTime = BASE_TIME + 3_600_000;
+    const result = getSleepReadyTime([drink], fromTime, 5, 50);
+
+    expect(result).not.toBeNull();
+    // At the returned time, caffeine should be <= threshold
+    const levelAtReady = getCaffeineLevel([drink], result!, 5);
+    expect(levelAtReady).toBeLessThanOrEqual(50);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCaffeineCurfew with duration drinks
+// ---------------------------------------------------------------------------
+describe('getCaffeineCurfew with duration drinks', () => {
+  it('existing duration drinks affect the budget correctly', () => {
+    // A duration drink vs instant drink should produce different existingAtBedtime levels
+    const instantDrink = makeDrink({ caffeineMg: 95, startedAt: BASE_TIME, endedAt: BASE_TIME });
+    const durationDrink = makeDrink({
+      caffeineMg: 95,
+      startedAt: BASE_TIME,
+      endedAt: BASE_TIME + 30 * 60_000,
+    });
+
+    const now = BASE_TIME + 2 * 3_600_000; // 2 hours later
+    const bedtime = now + 10 * 3_600_000;
+
+    const instantResult = getCaffeineCurfew([instantDrink], bedtime, now, 5, 50);
+    const durationResult = getCaffeineCurfew([durationDrink], bedtime, now, 5, 50);
+
+    // Both should be ok (95mg with 10h to bedtime is plenty of time)
+    expect(instantResult.status).toBe('ok');
+    expect(durationResult.status).toBe('ok');
+
+    // Duration drink absorbs later, so slightly more caffeine at bedtime
+    // This means a slightly earlier curfew for duration
+    if (instantResult.status === 'ok' && durationResult.status === 'ok') {
+      expect(durationResult.time).toBeLessThanOrEqual(instantResult.time);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateStackedCurveData with duration drinks
+// ---------------------------------------------------------------------------
+describe('generateStackedCurveData with duration drinks', () => {
+  const stepMs = 5 * 60_000;
+
+  it('30-min duration drink shows gradual ramp: level at 15min < level at 35min', () => {
+    const drink = makeDrink({
+      id: 'duration-drink',
+      caffeineMg: 200,
+      startedAt: BASE_TIME,
+      endedAt: BASE_TIME + 30 * 60_000,
+    });
+
+    const startTime = BASE_TIME;
+    const endTime = BASE_TIME + 2 * 3_600_000;
+    const data = generateStackedCurveData([drink], startTime, endTime, stepMs, 5);
+
+    // At 15 min: only ~half the sub-doses have started absorbing
+    const at15 = data.find((p) => p.time === BASE_TIME + 15 * 60_000);
+    // At 35 min: all sub-doses have started, more have absorbed
+    const at35 = data.find((p) => p.time === BASE_TIME + 35 * 60_000);
+
+    expect(at15).toBeDefined();
+    expect(at35).toBeDefined();
+
+    // Contribution at 15min should be less than at 35min (gradual ramp)
+    const level15 = at15!['duration-drink'] as number ?? 0;
+    const level35 = at35!['duration-drink'] as number ?? 0;
+    expect(level15).toBeGreaterThan(0);
+    expect(level35).toBeGreaterThan(level15);
+  });
+
+  it('instant drink returns same curve as before (regression)', () => {
+    const drink = makeDrink({ id: 'instant-drink', caffeineMg: 95 });
+    const startTime = BASE_TIME;
+    const endTime = BASE_TIME + 2 * 3_600_000;
+    const data = generateStackedCurveData([drink], startTime, endTime, stepMs, 5);
+
+    // 1 hour point should match singleDrinkLevel
+    const oneHourPoint = data.find((p) => p.time === BASE_TIME + 3_600_000);
+    expect(oneHourPoint).toBeDefined();
+    const expected = singleDrinkLevel(drink, BASE_TIME + 3_600_000, 5);
+    expect(oneHourPoint!['instant-drink']).toBeCloseTo(expected, 10);
+  });
+
+  it('sub-doses share parent ID so they render as one layer', () => {
+    const drink = makeDrink({
+      id: 'shared-id',
+      caffeineMg: 200,
+      startedAt: BASE_TIME,
+      endedAt: BASE_TIME + 30 * 60_000,
+    });
+
+    const startTime = BASE_TIME;
+    const endTime = BASE_TIME + 2 * 3_600_000;
+    const data = generateStackedCurveData([drink], startTime, endTime, stepMs, 5);
+
+    // At 1 hour: all sub-doses should be accumulated under 'shared-id'
+    const oneHourPoint = data.find((p) => p.time === BASE_TIME + 3_600_000);
+    expect(oneHourPoint).toBeDefined();
+    expect(oneHourPoint!['shared-id']).toBeDefined();
+    expect(oneHourPoint!['shared-id']).toBeCloseTo(oneHourPoint!.total, 10);
+
+    // No other drink keys should exist
+    const keys = Object.keys(oneHourPoint!).filter((k) => k !== 'time' && k !== 'total');
+    expect(keys).toEqual(['shared-id']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDailyTotal unchanged by sub-dose expansion
+// ---------------------------------------------------------------------------
+describe('getDailyTotal unchanged', () => {
+  it('sums raw caffeineMg regardless of startedAt/endedAt difference', () => {
+    const todayStart = startOfDay(new Date(BASE_TIME)).getTime();
+    const instantDrink = makeDrink({
+      id: 'd1',
+      caffeineMg: 95,
+      startedAt: todayStart + 3_600_000,
+      endedAt: todayStart + 3_600_000,
+    });
+    const durationDrink = makeDrink({
+      id: 'd2',
+      caffeineMg: 200,
+      startedAt: todayStart + 5 * 3_600_000,
+      endedAt: todayStart + 5 * 3_600_000 + 30 * 60_000,
+    });
+
+    const total = getDailyTotal([instantDrink, durationDrink], BASE_TIME);
+    expect(total).toBe(95 + 200);
   });
 });

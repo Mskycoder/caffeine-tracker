@@ -4,10 +4,8 @@ import {
   getTempMultiplier,
   generatePresetName,
   BREW_METHODS,
-  GRIND_MULTIPLIERS,
   BEAN_CAFFEINE_PERCENT,
 } from './calculator';
-import type { CalculatorInput } from './types';
 
 // ---------------------------------------------------------------------------
 // BREW_METHODS data table

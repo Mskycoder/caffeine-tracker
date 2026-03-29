@@ -4,6 +4,8 @@ import { useCaffeineStore } from '../store/caffeine-store';
 interface CustomDrinkFormProps {
   /** Returns the timestamp to use for the logged drink (Date.now() or backdated time). */
   getTimestamp: () => number;
+  /** Returns the selected duration in minutes (0 = instant). */
+  getDurationMinutes: () => number;
 }
 
 /**
@@ -14,7 +16,7 @@ interface CustomDrinkFormProps {
  * Per D-09: Button shows brief confirmation ("Logged" text, green bg) for 1 second.
  * Per Pitfall 3: Validates mg > 0 before logging.
  */
-export function CustomDrinkForm({ getTimestamp }: CustomDrinkFormProps) {
+export function CustomDrinkForm({ getTimestamp, getDurationMinutes }: CustomDrinkFormProps) {
   const addDrink = useCaffeineStore((s) => s.addDrink);
   const [mgInput, setMgInput] = useState('');
   const [nameInput, setNameInput] = useState('');
@@ -25,10 +27,13 @@ export function CustomDrinkForm({ getTimestamp }: CustomDrinkFormProps) {
     const mg = Number(mgInput);
     if (!mg || mg <= 0) return; // Pitfall 3: reject empty/invalid mg
 
+    const startedAt = getTimestamp();
+    const durationMs = getDurationMinutes() * 60_000;
     addDrink({
       name: nameInput.trim() || 'Custom',
       caffeineMg: mg,
-      timestamp: getTimestamp(),
+      startedAt,
+      endedAt: startedAt + durationMs,
       presetId: null,
     });
 

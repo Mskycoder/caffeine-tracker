@@ -13,9 +13,10 @@ vi.mock('../hooks/useCurrentTime', () => ({
 }));
 
 // Helper to create a drink entry
-function makeDrink(overrides: Partial<DrinkEntry> & { id: string; name: string; caffeineMg: number; timestamp: number }): DrinkEntry {
+function makeDrink(overrides: Partial<DrinkEntry> & { id: string; name: string; caffeineMg: number; startedAt: number }): DrinkEntry {
   return {
     presetId: null,
+    endedAt: overrides.startedAt,
     ...overrides,
   };
 }
@@ -29,12 +30,12 @@ const tenDaysAgo = new Date('2026-03-15T11:00:00').getTime();
 const thirtyFiveDaysAgo = new Date('2026-02-18T12:00:00').getTime();
 
 const MULTI_DAY_DRINKS: DrinkEntry[] = [
-  makeDrink({ id: 'today-1', name: 'Morning Espresso', caffeineMg: 200, timestamp: todayMorning }),
-  makeDrink({ id: 'today-2', name: 'Afternoon Tea', caffeineMg: 50, timestamp: todayAfternoon }),
-  makeDrink({ id: 'yesterday-1', name: 'Yesterday Latte', caffeineMg: 150, timestamp: yesterdayMorning }),
-  makeDrink({ id: 'three-days-1', name: 'Cold Brew', caffeineMg: 250, timestamp: threeDaysAgo }),
-  makeDrink({ id: 'ten-days-1', name: 'Energy Drink', caffeineMg: 160, timestamp: tenDaysAgo }),
-  makeDrink({ id: 'old-1', name: 'Ancient Coffee', caffeineMg: 95, timestamp: thirtyFiveDaysAgo }),
+  makeDrink({ id: 'today-1', name: 'Morning Espresso', caffeineMg: 200, startedAt: todayMorning }),
+  makeDrink({ id: 'today-2', name: 'Afternoon Tea', caffeineMg: 50, startedAt: todayAfternoon }),
+  makeDrink({ id: 'yesterday-1', name: 'Yesterday Latte', caffeineMg: 150, startedAt: yesterdayMorning }),
+  makeDrink({ id: 'three-days-1', name: 'Cold Brew', caffeineMg: 250, startedAt: threeDaysAgo }),
+  makeDrink({ id: 'ten-days-1', name: 'Energy Drink', caffeineMg: 160, startedAt: tenDaysAgo }),
+  makeDrink({ id: 'old-1', name: 'Ancient Coffee', caffeineMg: 95, startedAt: thirtyFiveDaysAgo }),
 ];
 
 describe('HistoryDrinkList', () => {

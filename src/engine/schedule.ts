@@ -55,7 +55,8 @@ export function getScheduledDrinksToLog(
     drinks.push({
       name: schedule.name,
       caffeineMg: schedule.caffeineMg,
-      timestamp: scheduledTime.getTime(),
+      startedAt: scheduledTime.getTime(),
+      endedAt: scheduledTime.getTime(),
       presetId: schedule.presetId,
     });
     processedScheduleIds.push(schedule.id);

@@ -36,12 +36,13 @@ export const DEFAULT_COVARIATES: CovariateSettings = {
   cyp1a2Inhibitor: 'none',
 };
 
-/** A single logged caffeine drink. Per D-01. */
+/** A single logged caffeine drink. Per D-14. */
 export interface DrinkEntry {
   id: string;                  // crypto.randomUUID()
   name: string;                // "Espresso", "Drip Coffee", "Custom"
   caffeineMg: number;          // caffeine amount in milligrams
-  timestamp: number;           // Date.now() epoch milliseconds
+  startedAt: number;           // epoch ms when consumption began
+  endedAt: number | undefined; // epoch ms when consumption ended; undefined = actively being consumed
   presetId: string | null;     // links to preset for color derivation (D-02), null for custom
 }
 
@@ -111,6 +112,7 @@ export interface CustomPreset {
   id: string;           // `custom-${crypto.randomUUID()}` — serves as both CRUD key and presetId for color derivation
   name: string;         // user-entered drink name (1-40 chars)
   caffeineMg: number;   // caffeine content in mg (1-1000)
+  durationMinutes: number;  // default consumption duration in minutes. 0 = instant.
   calculatorParams?: CalculatorParams;  // Phase 16: undefined for simple presets
 }
 

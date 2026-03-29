@@ -60,7 +60,8 @@ describe('addDrink', () => {
     useCaffeineStore.getState().addDrink({
       name: 'Espresso',
       caffeineMg: 63,
-      timestamp: Date.now(),
+      startedAt: Date.now(),
+      endedAt: Date.now(),
       presetId: null,
     });
 
@@ -75,7 +76,8 @@ describe('addDrink', () => {
     useCaffeineStore.getState().addDrink({
       name: 'Drip Coffee',
       caffeineMg: 95,
-      timestamp: Date.now(),
+      startedAt: Date.now(),
+      endedAt: Date.now(),
       presetId: null,
     });
 
@@ -86,8 +88,8 @@ describe('addDrink', () => {
 
   it('appends multiple drinks preserving order', () => {
     const state = useCaffeineStore.getState();
-    state.addDrink({ name: 'Coffee 1', caffeineMg: 95, timestamp: 1000, presetId: null });
-    state.addDrink({ name: 'Coffee 2', caffeineMg: 150, timestamp: 2000, presetId: null });
+    state.addDrink({ name: 'Coffee 1', caffeineMg: 95, startedAt: 1000, endedAt: 1000, presetId: null });
+    state.addDrink({ name: 'Coffee 2', caffeineMg: 150, startedAt: 2000, endedAt: 2000, presetId: null });
 
     const { drinks } = useCaffeineStore.getState();
     expect(drinks).toHaveLength(2);
@@ -102,8 +104,8 @@ describe('addDrink', () => {
 describe('removeDrink', () => {
   it('removes drink by id, leaves others intact', () => {
     const state = useCaffeineStore.getState();
-    state.addDrink({ name: 'Keep', caffeineMg: 95, timestamp: 1000, presetId: null });
-    state.addDrink({ name: 'Remove', caffeineMg: 63, timestamp: 2000, presetId: null });
+    state.addDrink({ name: 'Keep', caffeineMg: 95, startedAt: 1000, endedAt: 1000, presetId: null });
+    state.addDrink({ name: 'Remove', caffeineMg: 63, startedAt: 2000, endedAt: 2000, presetId: null });
 
     const drinks = useCaffeineStore.getState().drinks;
     const removeId = drinks[1].id;
@@ -123,7 +125,8 @@ describe('updateDrink', () => {
     useCaffeineStore.getState().addDrink({
       name: 'Original',
       caffeineMg: 95,
-      timestamp: 1000,
+      startedAt: 1000,
+      endedAt: 1000,
       presetId: null,
     });
 
@@ -134,14 +137,14 @@ describe('updateDrink', () => {
     expect(updated.name).toBe('Updated');
     expect(updated.caffeineMg).toBe(150);
     // Unchanged fields preserved
-    expect(updated.timestamp).toBe(1000);
+    expect(updated.startedAt).toBe(1000);
     expect(updated.presetId).toBeNull();
   });
 
   it('does not modify other drinks', () => {
     const state = useCaffeineStore.getState();
-    state.addDrink({ name: 'First', caffeineMg: 95, timestamp: 1000, presetId: null });
-    state.addDrink({ name: 'Second', caffeineMg: 63, timestamp: 2000, presetId: null });
+    state.addDrink({ name: 'First', caffeineMg: 95, startedAt: 1000, endedAt: 1000, presetId: null });
+    state.addDrink({ name: 'Second', caffeineMg: 63, startedAt: 2000, endedAt: 2000, presetId: null });
 
     const drinkId = useCaffeineStore.getState().drinks[1].id;
     useCaffeineStore.getState().updateDrink(drinkId, { name: 'Changed' });
@@ -186,8 +189,8 @@ describe('updateSettings', () => {
 describe('clearDrinks', () => {
   it('empties the drinks array', () => {
     const state = useCaffeineStore.getState();
-    state.addDrink({ name: 'Coffee', caffeineMg: 95, timestamp: 1000, presetId: null });
-    state.addDrink({ name: 'Tea', caffeineMg: 47, timestamp: 2000, presetId: null });
+    state.addDrink({ name: 'Coffee', caffeineMg: 95, startedAt: 1000, endedAt: 1000, presetId: null });
+    state.addDrink({ name: 'Tea', caffeineMg: 47, startedAt: 2000, endedAt: 2000, presetId: null });
 
     expect(useCaffeineStore.getState().drinks).toHaveLength(2);
 
@@ -206,9 +209,9 @@ describe('persist config', () => {
     expect(options.name).toBe('caffeine-tracker-storage');
   });
 
-  it('version is 6', () => {
+  it('version is 7', () => {
     const options = useCaffeineStore.persist.getOptions();
-    expect(options.version).toBe(6);
+    expect(options.version).toBe(7);
   });
 });
 
@@ -323,17 +326,100 @@ describe('migration', () => {
     expect(result.settings.thresholdSource).toBe('manual');
   });
 
-  it('returns v6 state unchanged', () => {
-    const v6State = {
-      drinks: [],
+  it('returns v7 state unchanged', () => {
+    const v7State = {
+      drinks: [{ id: 'd1', name: 'Coffee', caffeineMg: 95, startedAt: 1000, endedAt: 1000, presetId: null }],
       settings: { ...DEFAULT_SETTINGS },
-      customPresets: [],
+      customPresets: [{ id: 'custom-1', name: 'Mocha', caffeineMg: 120, durationMinutes: 0 }],
       schedules: [{ id: 'sched-1', presetId: 'drip-coffee', name: 'Drip Coffee', caffeineMg: 95, timeOfDay: '09:00', repeatDays: [1, 2, 3, 4, 5], paused: false, lastRunDate: null }],
     };
     const options = useCaffeineStore.persist.getOptions();
-    const result = options.migrate!(v6State, 6) as CaffeineState;
+    const result = options.migrate!(v7State, 7) as CaffeineState;
     expect(result.schedules).toHaveLength(1);
     expect(result.schedules[0].name).toBe('Drip Coffee');
+    expect(result.drinks[0].startedAt).toBe(1000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v6 -> v7 migration
+// ---------------------------------------------------------------------------
+describe('v6 -> v7 migration', () => {
+  it('renames timestamp to startedAt on existing drinks', () => {
+    const v6State = {
+      drinks: [
+        { id: 'd1', name: 'Coffee', caffeineMg: 95, timestamp: 1000, presetId: null },
+        { id: 'd2', name: 'Tea', caffeineMg: 47, timestamp: 2000, presetId: 'black-tea' },
+      ],
+      settings: { ...DEFAULT_SETTINGS },
+      customPresets: [],
+      schedules: [],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v6State, 6) as CaffeineState;
+    expect(result.drinks[0].startedAt).toBe(1000);
+    expect(result.drinks[1].startedAt).toBe(2000);
+    expect((result.drinks[0] as unknown as Record<string, unknown>).timestamp).toBeUndefined();
+    expect((result.drinks[1] as unknown as Record<string, unknown>).timestamp).toBeUndefined();
+  });
+
+  it('sets endedAt equal to startedAt for existing drinks (instant)', () => {
+    const v6State = {
+      drinks: [
+        { id: 'd1', name: 'Coffee', caffeineMg: 95, timestamp: 1000, presetId: null },
+      ],
+      settings: { ...DEFAULT_SETTINGS },
+      customPresets: [],
+      schedules: [],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v6State, 6) as CaffeineState;
+    expect(result.drinks[0].endedAt).toBe(1000);
+  });
+
+  it('handles re-migration safety (drinks already have startedAt)', () => {
+    const v6State = {
+      drinks: [
+        { id: 'd1', name: 'Coffee', caffeineMg: 95, startedAt: 3000, presetId: null },
+      ],
+      settings: { ...DEFAULT_SETTINGS },
+      customPresets: [],
+      schedules: [],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v6State, 6) as CaffeineState;
+    expect(result.drinks[0].startedAt).toBe(3000);
+    expect(result.drinks[0].endedAt).toBe(3000);
+  });
+
+  it('adds durationMinutes: 0 to existing custom presets', () => {
+    const v6State = {
+      drinks: [],
+      settings: { ...DEFAULT_SETTINGS },
+      customPresets: [
+        { id: 'custom-1', name: 'Mocha', caffeineMg: 120 },
+        { id: 'custom-2', name: 'Latte', caffeineMg: 80 },
+      ],
+      schedules: [],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v6State, 6) as CaffeineState;
+    expect(result.customPresets[0].durationMinutes).toBe(0);
+    expect(result.customPresets[1].durationMinutes).toBe(0);
+  });
+
+  it('preserves existing durationMinutes on custom presets', () => {
+    const v6State = {
+      drinks: [],
+      settings: { ...DEFAULT_SETTINGS },
+      customPresets: [
+        { id: 'custom-1', name: 'Slow Brew', caffeineMg: 150, durationMinutes: 15 },
+      ],
+      schedules: [],
+    };
+    const options = useCaffeineStore.persist.getOptions();
+    const result = options.migrate!(v6State, 6) as CaffeineState;
+    expect(result.customPresets[0].durationMinutes).toBe(15);
   });
 });
 
@@ -657,5 +743,136 @@ describe('runCatchUp', () => {
     const count2 = useCaffeineStore.getState().runCatchUp(FRIDAY_10AM);
     expect(count2).toBe(0);
     expect(useCaffeineStore.getState().drinks).toHaveLength(1); // still just 1
+  });
+});
+
+// ---------------------------------------------------------------------------
+// startDrink
+// ---------------------------------------------------------------------------
+describe('startDrink', () => {
+  it('creates an active drink with endedAt = undefined', () => {
+    useCaffeineStore.getState().startDrink({
+      name: 'Latte',
+      caffeineMg: 130,
+      startedAt: 1000,
+      presetId: 'latte',
+    });
+    const { drinks } = useCaffeineStore.getState();
+    expect(drinks).toHaveLength(1);
+    expect(drinks[0].name).toBe('Latte');
+    expect(drinks[0].caffeineMg).toBe(130);
+    expect(drinks[0].startedAt).toBe(1000);
+    expect(drinks[0].presetId).toBe('latte');
+    expect(drinks[0].endedAt).toBeUndefined();
+    expect(drinks[0].id).toBeDefined();
+  });
+
+  it('generates unique ID', () => {
+    const state = useCaffeineStore.getState();
+    state.startDrink({ name: 'A', caffeineMg: 50, startedAt: 1000, presetId: null });
+    useCaffeineStore.getState().startDrink({ name: 'B', caffeineMg: 50, startedAt: 2000, presetId: null });
+    const { drinks } = useCaffeineStore.getState();
+    expect(drinks[0].id).not.toBe(drinks[1].id);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// finishDrink
+// ---------------------------------------------------------------------------
+describe('finishDrink', () => {
+  it('sets endedAt on the specified drink', () => {
+    useCaffeineStore.getState().startDrink({
+      name: 'Coffee',
+      caffeineMg: 95,
+      startedAt: 1000,
+      presetId: null,
+    });
+    const id = useCaffeineStore.getState().drinks[0].id;
+    useCaffeineStore.getState().finishDrink(id, 5000);
+    expect(useCaffeineStore.getState().drinks[0].endedAt).toBe(5000);
+  });
+
+  it('uses Date.now() when endedAt not provided', () => {
+    useCaffeineStore.getState().startDrink({
+      name: 'Coffee',
+      caffeineMg: 95,
+      startedAt: 1000,
+      presetId: null,
+    });
+    const id = useCaffeineStore.getState().drinks[0].id;
+    const before = Date.now();
+    useCaffeineStore.getState().finishDrink(id);
+    const after = Date.now();
+    const endedAt = useCaffeineStore.getState().drinks[0].endedAt!;
+    expect(endedAt).toBeGreaterThanOrEqual(before);
+    expect(endedAt).toBeLessThanOrEqual(after);
+  });
+
+  it('does not affect other drinks', () => {
+    const state = useCaffeineStore.getState();
+    state.startDrink({ name: 'A', caffeineMg: 50, startedAt: 1000, presetId: null });
+    useCaffeineStore.getState().startDrink({ name: 'B', caffeineMg: 50, startedAt: 2000, presetId: null });
+    const idA = useCaffeineStore.getState().drinks[0].id;
+    useCaffeineStore.getState().finishDrink(idA, 3000);
+    expect(useCaffeineStore.getState().drinks[0].endedAt).toBe(3000);
+    expect(useCaffeineStore.getState().drinks[1].endedAt).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// autoFinishDrinks
+// ---------------------------------------------------------------------------
+describe('autoFinishDrinks', () => {
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const NOW = 10_000_000;
+
+  it('auto-finishes drinks older than 2 hours', () => {
+    useCaffeineStore.getState().startDrink({
+      name: 'Old Coffee',
+      caffeineMg: 95,
+      startedAt: NOW - 3 * 60 * 60 * 1000, // 3 hours ago
+      presetId: null,
+    });
+    useCaffeineStore.getState().autoFinishDrinks(NOW);
+    const drink = useCaffeineStore.getState().drinks[0];
+    expect(drink.endedAt).toBe(drink.startedAt + TWO_HOURS_MS);
+  });
+
+  it('returns count of auto-finished drinks', () => {
+    const state = useCaffeineStore.getState();
+    state.startDrink({ name: 'Old 1', caffeineMg: 50, startedAt: NOW - 3 * 60 * 60 * 1000, presetId: null });
+    useCaffeineStore.getState().startDrink({ name: 'Old 2', caffeineMg: 50, startedAt: NOW - 3 * 60 * 60 * 1000, presetId: null });
+    useCaffeineStore.getState().startDrink({ name: 'Recent', caffeineMg: 50, startedAt: NOW - 30 * 60 * 1000, presetId: null });
+    const count = useCaffeineStore.getState().autoFinishDrinks(NOW);
+    expect(count).toBe(2);
+  });
+
+  it('does not affect drinks under 2 hours', () => {
+    useCaffeineStore.getState().startDrink({
+      name: 'Recent Coffee',
+      caffeineMg: 95,
+      startedAt: NOW - 60 * 60 * 1000, // 1 hour ago
+      presetId: null,
+    });
+    useCaffeineStore.getState().autoFinishDrinks(NOW);
+    expect(useCaffeineStore.getState().drinks[0].endedAt).toBeUndefined();
+  });
+
+  it('does not affect already-finished drinks', () => {
+    useCaffeineStore.getState().addDrink({
+      name: 'Finished',
+      caffeineMg: 95,
+      startedAt: NOW - 3 * 60 * 60 * 1000,
+      endedAt: NOW - 2.5 * 60 * 60 * 1000,
+      presetId: null,
+    });
+    const originalEndedAt = useCaffeineStore.getState().drinks[0].endedAt;
+    useCaffeineStore.getState().autoFinishDrinks(NOW);
+    expect(useCaffeineStore.getState().drinks[0].endedAt).toBe(originalEndedAt);
+  });
+
+  it('returns 0 when no drinks to auto-finish', () => {
+    const count = useCaffeineStore.getState().autoFinishDrinks(NOW);
+    expect(count).toBe(0);
   });
 });

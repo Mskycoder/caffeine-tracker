@@ -87,12 +87,13 @@ describe('getScheduledDrinksToLog', () => {
     expect(processedScheduleIds).toEqual([]);
   });
 
-  it('returned drink entries have correct timestamp (scheduled time today, not current time)', () => {
+  it('returned drink entries have correct startedAt (scheduled time today, not current time)', () => {
     const schedule = makeSchedule({ timeOfDay: '09:00' });
     const { drinks } = getScheduledDrinksToLog([schedule], FRIDAY_10AM);
     // Should be 09:00 today, not 10:00
     const expected = new Date('2026-03-27T09:00:00').getTime();
-    expect(drinks[0].timestamp).toBe(expected);
+    expect(drinks[0].startedAt).toBe(expected);
+    expect(drinks[0].endedAt).toBe(expected);
   });
 
   it('returned drink entries have correct name, caffeineMg, presetId from schedule', () => {

@@ -15,8 +15,8 @@ import type { DrinkEntry } from '../engine/types';
 function getTodaysDrinks(drinks: DrinkEntry[], now: number): DrinkEntry[] {
   const todayStart = startOfDay(new Date(now)).getTime();
   return drinks
-    .filter((d) => d.timestamp >= todayStart)
-    .sort((a, b) => a.timestamp - b.timestamp);
+    .filter((d) => d.startedAt >= todayStart && d.endedAt !== undefined) // exclude active drinks
+    .sort((a, b) => a.startedAt - b.startedAt);
 }
 
 /**
@@ -61,7 +61,7 @@ export function DrinkHistory() {
   }, []);
 
   const saveEdit = useCallback((id: string, timestamp: number) => {
-    updateDrink(id, { timestamp });
+    updateDrink(id, { startedAt: timestamp });
     setEditingId(null);
   }, [updateDrink]);
 

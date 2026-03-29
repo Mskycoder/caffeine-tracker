@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = {
 
 const FIXED_TIMESTAMP = 1711382400000;
 const getTimestamp = () => FIXED_TIMESTAMP;
+const getDurationMinutes = () => 0;
 
 beforeEach(() => {
   useCaffeineStore.setState({
@@ -31,7 +32,7 @@ beforeEach(() => {
 
 describe('DrinkPresets', () => {
   it('renders all 12 preset cards', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
     expect(screen.getByText('Espresso')).toBeInTheDocument();
     expect(screen.getByText('Double Espresso')).toBeInTheDocument();
     expect(screen.getByText('Drip Coffee')).toBeInTheDocument();
@@ -47,7 +48,7 @@ describe('DrinkPresets', () => {
   });
 
   it('each card shows caffeine amount', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
     // 63mg appears twice (Espresso and Latte)
     expect(screen.getAllByText('63mg')).toHaveLength(2);
     // 200mg appears twice (Cold Brew and Caffeine Pill)
@@ -56,7 +57,7 @@ describe('DrinkPresets', () => {
   });
 
   it('two taps required: first selects, second confirms and logs', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
     // First tap: select (no drink logged yet)
     fireEvent.click(screen.getByText('Espresso'));
@@ -70,12 +71,12 @@ describe('DrinkPresets', () => {
     expect(drinks[0].name).toBe('Espresso');
     expect(drinks[0].caffeineMg).toBe(63);
     expect(drinks[0].presetId).toBe('espresso');
-    expect(drinks[0].timestamp).toBe(FIXED_TIMESTAMP);
+    expect(drinks[0].startedAt).toBe(FIXED_TIMESTAMP);
     expect(screen.getByText('Logged')).toBeInTheDocument();
   });
 
   it('post-log flash appears after confirm', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
     // Two taps: select then confirm
     fireEvent.click(screen.getByText('Espresso'));
@@ -85,7 +86,7 @@ describe('DrinkPresets', () => {
   });
 
   it('taps blocked during post-log flash', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
     // Two taps: select then confirm to log Espresso
     fireEvent.click(screen.getByText('Espresso'));
@@ -98,7 +99,7 @@ describe('DrinkPresets', () => {
   });
 
   it('first tap selects preset with purple confirmation state', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
     // Click Espresso once
     fireEvent.click(screen.getByText('Espresso'));
@@ -113,7 +114,7 @@ describe('DrinkPresets', () => {
 
   it('selection auto-reverts after 3 seconds', () => {
     vi.useFakeTimers();
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
     fireEvent.click(screen.getByText('Espresso'));
     expect(screen.getByText('Confirm')).toBeInTheDocument();
@@ -129,7 +130,7 @@ describe('DrinkPresets', () => {
   });
 
   it('tapping a different preset swaps selection', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
     // Select Espresso
     fireEvent.click(screen.getByText('Espresso'));
@@ -146,7 +147,7 @@ describe('DrinkPresets', () => {
   });
 
   it('only one preset selected at a time', () => {
-    render(<DrinkPresets getTimestamp={getTimestamp} />);
+    render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
     // Select Espresso
     fireEvent.click(screen.getByText('Espresso'));
@@ -158,12 +159,12 @@ describe('DrinkPresets', () => {
 
   describe('without custom presets', () => {
     it('does NOT render "My Drinks" heading when customPresets is empty', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       expect(screen.queryByText('My Drinks')).not.toBeInTheDocument();
     });
 
     it('built-in section shows "Drinks" heading (not "Built-in") when no custom presets', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       expect(screen.getByText('Drinks')).toBeInTheDocument();
       expect(screen.queryByText('Built-in')).not.toBeInTheDocument();
     });
@@ -175,19 +176,19 @@ describe('DrinkPresets', () => {
         drinks: [],
         settings: { ...DEFAULT_SETTINGS },
         customPresets: [
-          { id: 'custom-test-1', name: 'My Latte', caffeineMg: 80 },
-          { id: 'custom-test-2', name: 'Afternoon Brew', caffeineMg: 120 },
+          { id: 'custom-test-1', name: 'My Latte', caffeineMg: 80, durationMinutes: 0 },
+          { id: 'custom-test-2', name: 'Afternoon Brew', caffeineMg: 120, durationMinutes: 0 },
         ],
       });
     });
 
     it('renders "My Drinks" section heading when custom presets exist', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       expect(screen.getByText('My Drinks')).toBeInTheDocument();
     });
 
     it('renders custom preset names and their caffeine amounts', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       expect(screen.getByText('My Latte')).toBeInTheDocument();
       // 80mg appears twice: custom "My Latte" and built-in "Energy Drink"
       expect(screen.getAllByText('80mg').length).toBeGreaterThanOrEqual(1);
@@ -196,13 +197,13 @@ describe('DrinkPresets', () => {
     });
 
     it('renders "Built-in" section heading (not "Drinks") when custom presets exist', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       expect(screen.getByText('Built-in')).toBeInTheDocument();
       expect(screen.queryByText('Drinks')).not.toBeInTheDocument();
     });
 
     it('clicking a custom preset: two taps to log', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
       // First tap: select
       fireEvent.click(screen.getByText('My Latte'));
@@ -218,7 +219,7 @@ describe('DrinkPresets', () => {
     });
 
     it('confirmation flash works for custom presets', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
 
       // Two taps: select then confirm
       fireEvent.click(screen.getByText('Afternoon Brew'));
@@ -228,7 +229,7 @@ describe('DrinkPresets', () => {
     });
 
     it('custom preset cards do NOT have edit/delete buttons (no Pencil/Trash2 icons)', () => {
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       // No edit or delete aria-labels should exist in the DrinkPresets component
       expect(screen.queryByLabelText(/Edit/)).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Delete/)).not.toBeInTheDocument();
@@ -241,7 +242,7 @@ describe('DrinkPresets', () => {
         settings: { ...DEFAULT_SETTINGS, hiddenPresetIds: ['espresso', 'latte'] },
         customPresets: [],
       });
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       expect(screen.queryByText('Espresso')).not.toBeInTheDocument();
       expect(screen.queryByText('Latte')).not.toBeInTheDocument();
       expect(screen.getByText('Drip Coffee')).toBeInTheDocument();
@@ -257,9 +258,36 @@ describe('DrinkPresets', () => {
         settings: { ...DEFAULT_SETTINGS, hiddenPresetIds: allIds },
         customPresets: [],
       });
-      render(<DrinkPresets getTimestamp={getTimestamp} />);
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
       expect(screen.queryByText('Built-in')).not.toBeInTheDocument();
       expect(screen.queryByText('Drinks')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('duration integration', () => {
+    it('logged drink includes endedAt computed from getDurationMinutes', () => {
+      const getDuration15 = () => 15;
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDuration15} />);
+
+      // Two taps: select then confirm
+      fireEvent.click(screen.getByText('Espresso'));
+      fireEvent.click(screen.getByText('Espresso'));
+
+      const { drinks } = useCaffeineStore.getState();
+      expect(drinks).toHaveLength(1);
+      expect(drinks[0].startedAt).toBe(FIXED_TIMESTAMP);
+      expect(drinks[0].endedAt).toBe(FIXED_TIMESTAMP + 15 * 60_000);
+    });
+
+    it('instant duration sets endedAt equal to startedAt', () => {
+      render(<DrinkPresets getTimestamp={getTimestamp} getDurationMinutes={getDurationMinutes} />);
+
+      fireEvent.click(screen.getByText('Espresso'));
+      fireEvent.click(screen.getByText('Espresso'));
+
+      const { drinks } = useCaffeineStore.getState();
+      expect(drinks).toHaveLength(1);
+      expect(drinks[0].endedAt).toBe(drinks[0].startedAt);
     });
   });
 });

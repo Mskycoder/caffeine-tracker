@@ -5,6 +5,8 @@ import { DRINK_PRESETS } from '../data/presets';
 interface DrinkPresetsProps {
   /** Returns the timestamp to use for the logged drink (Date.now() or backdated time). */
   getTimestamp: () => number;
+  /** Returns the selected duration in minutes (0 = instant). */
+  getDurationMinutes: () => number;
 }
 
 /**
@@ -23,7 +25,7 @@ interface DrinkPresetsProps {
  * Per Pitfall 3: No edit/delete buttons in BottomSheet (management is on DrinksPage only).
  * Per Phase 15 D-09: Hidden presets filtered from built-in grid.
  */
-export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
+export function DrinkPresets({ getTimestamp, getDurationMinutes }: DrinkPresetsProps) {
   const addDrink = useCaffeineStore((s) => s.addDrink);
   const customPresets = useCaffeineStore((s) => s.customPresets);
   const hiddenPresetIds = useCaffeineStore((s) => s.settings.hiddenPresetIds ?? []);
@@ -45,7 +47,9 @@ export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
       if (selectedId === presetId) {
         // Second tap on same card = confirm and log (D-06, D-07)
         if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current);
-        addDrink({ name, caffeineMg, timestamp: getTimestamp(), presetId });
+        const startedAt = getTimestamp();
+        const durationMs = getDurationMinutes() * 60_000;
+        addDrink({ name, caffeineMg, startedAt, endedAt: startedAt + durationMs, presetId });
         setSelectedId(null);
         setConfirmedId(presetId);
         setTimeout(() => setConfirmedId(null), 1000);
@@ -58,7 +62,7 @@ export function DrinkPresets({ getTimestamp }: DrinkPresetsProps) {
         }, 3000);
       }
     },
-    [addDrink, confirmedId, selectedId, getTimestamp],
+    [addDrink, confirmedId, selectedId, getTimestamp, getDurationMinutes],
   );
 
   const renderPresetCard = (presetId: string, name: string, caffeineMg: number) => {

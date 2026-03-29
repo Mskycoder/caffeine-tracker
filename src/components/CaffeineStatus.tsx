@@ -12,17 +12,16 @@ import { useCurrentTime } from '../hooks/useCurrentTime';
  * 1. Current estimated caffeine level (mg) -- large bold number
  * 1b. Zone badge (when research thresholds enabled) -- colored dot + zone name
  *     indicating clear/autonomic/sleep_disruption based on personalized thresholds
- * 2. Sleep-ready time estimate -- contextualized against bedtime:
- *    - "You're clear to sleep" when already below threshold
- *    - "On track for your X:XX AM bedtime" when will be clear before bedtime
- *    - "Won't be clear until X:XX AM" when still above threshold at bedtime (amber warning)
+ * 2. Sleep-ready time estimate -- single line with dot separator, contextualized against bedtime:
+ *    - "Clear to sleep · {N}mg at bedtime" when already below threshold (green)
+ *    - "On track for {time} · {N}mg" when will be clear before bedtime (green)
+ *    - "Won't clear until {time} · {N}mg" when still above threshold at bedtime (amber)
+ *    - When targetBedtime is null, status text only (no dot separator or mg portion)
  * 3. Caffeine curfew -- "Last call for caffeine: X:XX AM/PM", or contextual past-curfew
  *    messages that pair coherently with the sleep estimate
  * 4. Daily caffeine total -- "Today: Xmg / 400mg" with green-to-red color gradient
- * 5. Bedtime caffeine projection -- "{N}mg at bedtime" below sleep estimate:
- *    - Gray (text-gray-400) when clear or on track
- *    - Amber (text-amber-600) when won't clear before bedtime
- *    - Hidden when targetBedtime is null
+ * 5. Half-life badge -- shows effective half-life, with threshold mg values when
+ *    research thresholds enabled: "Half-life: 5hr | 41mg · 71mg"
  *
  * The sleep estimate and curfew messages are designed to tell a coherent story together.
  * When the user is on track for bedtime, both messages are reassuring. When not, both warn.
@@ -54,7 +53,6 @@ export function CaffeineStatus() {
 
   // BED-01: Projected caffeine at bedtime
   const bedtimeMg = getCaffeineLevel(drinks, targetBedtimeMs, effectiveHalfLife);
-  const bedtimeMgAmber = sleepTime !== null && sleepTime > targetBedtimeMs;
 
   const dailyTotal = getDailyTotal(drinks, now);
 
@@ -87,39 +85,17 @@ export function CaffeineStatus() {
       })()}
       <div className="mt-3 text-base text-gray-600">
         {sleepTime === null ? (
-          <>
-            <p className="text-green-600 font-medium">You're clear to sleep</p>
-            {settings.targetBedtime !== null && (
-              <p className={`text-sm mt-1 ${bedtimeMgAmber ? 'text-amber-600' : 'text-gray-400'}`}>
-                {Math.round(bedtimeMg)}mg at bedtime
-              </p>
-            )}
-          </>
+          <p className="text-green-600 font-medium">
+            Clear to sleep{settings.targetBedtime !== null ? ` \u00b7 ${Math.round(bedtimeMg)}mg at bedtime` : ''}
+          </p>
         ) : sleepTime <= targetBedtimeMs ? (
-          <>
-            <p className="text-green-600 font-medium">
-              On track for your{' '}
-              <span className="font-semibold">{format(new Date(targetBedtimeMs), 'h:mm a')}</span>
-              {' '}bedtime
-            </p>
-            {settings.targetBedtime !== null && (
-              <p className={`text-sm mt-1 ${bedtimeMgAmber ? 'text-amber-600' : 'text-gray-400'}`}>
-                {Math.round(bedtimeMg)}mg at bedtime
-              </p>
-            )}
-          </>
+          <p className="text-green-600 font-medium">
+            On track for {format(new Date(targetBedtimeMs), 'h:mm a')} {'\u00b7'} {Math.round(bedtimeMg)}mg
+          </p>
         ) : (
-          <>
-            <p className="text-amber-600">
-              Won't be clear until{' '}
-              <span className="font-semibold">{format(new Date(sleepTime), 'h:mm a')}</span>
-            </p>
-            {settings.targetBedtime !== null && (
-              <p className={`text-sm mt-1 ${bedtimeMgAmber ? 'text-amber-600' : 'text-gray-400'}`}>
-                {Math.round(bedtimeMg)}mg at bedtime
-              </p>
-            )}
-          </>
+          <p className="text-amber-600">
+            Won't clear until {format(new Date(sleepTime), 'h:mm a')} {'\u00b7'} {Math.round(bedtimeMg)}mg
+          </p>
         )}
       </div>
       <div className="mt-2 text-sm text-gray-500">
@@ -151,6 +127,17 @@ export function CaffeineStatus() {
         Half-life: {settings.metabolismMode === 'advanced'
           ? `${effectiveHalfLife.toFixed(1)}hr`
           : `${effectiveHalfLife}hr`}
+        {settings.showResearchThresholds && (() => {
+          const thresholds = getPersonalizedThresholds(settings);
+          return (
+            <>
+              {' | '}
+              <span style={{ color: '#16a34a' }}>{Math.round(thresholds.autonomicMg)}mg</span>
+              {' \u00b7 '}
+              <span style={{ color: '#ef4444' }}>{Math.round(thresholds.deepSleepMg)}mg</span>
+            </>
+          );
+        })()}
       </p>
       <div className="mt-3 pt-3 border-t border-gray-100 text-sm">
         <p style={{ color: dailyTotalColor(dailyTotal, FDA_DAILY_LIMIT_MG) }} className="font-semibold">

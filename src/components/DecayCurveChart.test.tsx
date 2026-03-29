@@ -51,7 +51,7 @@ describe('DecayCurveChart', () => {
     expect(screen.getByText('Caffeine Level')).toBeInTheDocument();
   });
 
-  it('calls generateStackedCurveData with correct 48h window', () => {
+  it('calls generateStackedCurveData with correct 36h window', () => {
     const spy = vi.spyOn(caffeineEngine, 'generateStackedCurveData');
 
     render(<DecayCurveChart />);
@@ -59,9 +59,10 @@ describe('DecayCurveChart', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     const [drinks, startTime, endTime, stepMs, halfLifeHours] = spy.mock.calls[0];
 
-    // 24h window on each side of FIXED_NOW
+    // 12h past + 24h future
+    const halfDayMs = 12 * 60 * 60 * 1000;
     const dayMs = 24 * 60 * 60 * 1000;
-    expect(startTime).toBe(FIXED_NOW - dayMs);
+    expect(startTime).toBe(FIXED_NOW - halfDayMs);
     expect(endTime).toBe(FIXED_NOW + dayMs);
     expect(stepMs).toBe(5 * 60_000); // PROJECTION_STEP_MS
     expect(halfLifeHours).toBe(5);
@@ -82,7 +83,8 @@ describe('DecayCurveChart', () => {
       id: 'test-1',
       name: 'Espresso',
       caffeineMg: 200,
-      timestamp: FIXED_NOW - 3_600_000,
+      startedAt: FIXED_NOW - 3_600_000,
+      endedAt: FIXED_NOW - 3_600_000,
       presetId: 'espresso',
     }];
 
@@ -106,7 +108,8 @@ describe('DecayCurveChart', () => {
         id: 'test-bed-1',
         name: 'Espresso',
         caffeineMg: 200,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+      endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },
@@ -127,7 +130,8 @@ describe('DecayCurveChart', () => {
         id: 'test-bed-2',
         name: 'Espresso',
         caffeineMg: 200,
-        timestamp: FIXED_NOW - 3_600_000,
+        startedAt: FIXED_NOW - 3_600_000,
+      endedAt: FIXED_NOW - 3_600_000,
         presetId: 'espresso',
       }],
       settings: { halfLifeHours: 5, thresholdMg: 50, targetBedtime: '23:00', metabolismMode: 'simple' as const, covariates: { ...defaultCovariates }, hiddenPresetIds: [], showResearchThresholds: false, caffeineSensitivity: 'normal' as const, thresholdSource: 'manual' as const },

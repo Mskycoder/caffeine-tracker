@@ -4,6 +4,7 @@ import { TabBar } from './TabBar';
 import { BottomSheet } from './BottomSheet';
 import { DrinkLogger } from './DrinkLogger';
 import { useScheduleCatchUp } from '../hooks/useScheduleCatchUp';
+import { useAutoFinish } from '../hooks/useAutoFinish';
 import { Toast } from './Toast';
 
 /**
@@ -21,7 +22,11 @@ import { Toast } from './Toast';
  */
 export function Layout() {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const toastMessage = useScheduleCatchUp();
+  const catchUpToast = useScheduleCatchUp();
+  const autoFinishToast = useAutoFinish();
+
+  // Show whichever toast is active (they shouldn't overlap in practice)
+  const toastMessage = catchUpToast || autoFinishToast;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">

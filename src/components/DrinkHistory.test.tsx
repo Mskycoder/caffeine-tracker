@@ -34,14 +34,16 @@ describe('DrinkHistory', () => {
           id: '1',
           name: 'Espresso',
           caffeineMg: 200,
-          timestamp: new Date('2026-03-25T08:00:00').getTime(),
+          startedAt: new Date('2026-03-25T08:00:00').getTime(),
+        endedAt: new Date('2026-03-25T08:00:00').getTime(),
           presetId: 'espresso',
         },
         {
           id: '2',
           name: 'Drip Coffee',
           caffeineMg: 95,
-          timestamp: new Date('2026-03-25T13:00:00').getTime(),
+          startedAt: new Date('2026-03-25T13:00:00').getTime(),
+        endedAt: new Date('2026-03-25T13:00:00').getTime(),
           presetId: 'drip-coffee',
         },
       ],
@@ -66,14 +68,16 @@ describe('DrinkHistory', () => {
           id: '1',
           name: 'Yesterday Latte',
           caffeineMg: 150,
-          timestamp: yesterdayTimestamp,
+          startedAt: yesterdayTimestamp,
+        endedAt: yesterdayTimestamp,
           presetId: null,
         },
         {
           id: '2',
           name: 'Today Espresso',
           caffeineMg: 200,
-          timestamp: new Date('2026-03-25T09:00:00').getTime(),
+          startedAt: new Date('2026-03-25T09:00:00').getTime(),
+        endedAt: new Date('2026-03-25T09:00:00').getTime(),
           presetId: 'espresso',
         },
       ],
@@ -92,14 +96,16 @@ describe('DrinkHistory', () => {
           id: '1',
           name: 'Afternoon Tea',
           caffeineMg: 50,
-          timestamp: new Date('2026-03-25T14:00:00').getTime(),
+          startedAt: new Date('2026-03-25T14:00:00').getTime(),
+        endedAt: new Date('2026-03-25T14:00:00').getTime(),
           presetId: null,
         },
         {
           id: '2',
           name: 'Morning Coffee',
           caffeineMg: 200,
-          timestamp: new Date('2026-03-25T09:00:00').getTime(),
+          startedAt: new Date('2026-03-25T09:00:00').getTime(),
+        endedAt: new Date('2026-03-25T09:00:00').getTime(),
           presetId: 'drip-coffee',
         },
       ],
@@ -118,14 +124,16 @@ describe('DrinkHistory', () => {
         id: '1',
         name: 'Espresso',
         caffeineMg: 200,
-        timestamp: new Date('2026-03-25T08:00:00').getTime(),
+        startedAt: new Date('2026-03-25T08:00:00').getTime(),
+        endedAt: new Date('2026-03-25T08:00:00').getTime(),
         presetId: 'espresso',
       },
       {
         id: '2',
         name: 'Drip Coffee',
         caffeineMg: 95,
-        timestamp: new Date('2026-03-25T13:00:00').getTime(),
+        startedAt: new Date('2026-03-25T13:00:00').getTime(),
+        endedAt: new Date('2026-03-25T13:00:00').getTime(),
         presetId: 'drip-coffee',
       },
     ];
@@ -200,7 +208,8 @@ describe('DrinkHistory', () => {
       id: '1',
       name: 'Espresso',
       caffeineMg: 200,
-      timestamp: new Date('2026-03-25T08:00:00').getTime(),
+      startedAt: new Date('2026-03-25T08:00:00').getTime(),
+        endedAt: new Date('2026-03-25T08:00:00').getTime(),
       presetId: 'espresso',
     }];
 
@@ -241,14 +250,16 @@ describe('DrinkHistory', () => {
         id: '1',
         name: 'Espresso',
         caffeineMg: 200,
-        timestamp: new Date('2026-03-25T08:00:00').getTime(),
+        startedAt: new Date('2026-03-25T08:00:00').getTime(),
+        endedAt: new Date('2026-03-25T08:00:00').getTime(),
         presetId: 'espresso',
       },
       {
         id: '2',
         name: 'Drip Coffee',
         caffeineMg: 95,
-        timestamp: new Date('2026-03-25T13:00:00').getTime(),
+        startedAt: new Date('2026-03-25T13:00:00').getTime(),
+        endedAt: new Date('2026-03-25T13:00:00').getTime(),
         presetId: 'drip-coffee',
       },
     ];
@@ -269,7 +280,7 @@ describe('DrinkHistory', () => {
       const editBtn = screen.getByRole('button', { name: /edit espresso/i });
       fireEvent.click(editBtn);
 
-      const input = screen.getByDisplayValue(epochToDatetimeLocal(TWO_DRINKS[0].timestamp));
+      const input = screen.getByDisplayValue(epochToDatetimeLocal(TWO_DRINKS[0].startedAt));
       expect(input).toBeInTheDocument();
       expect(input).toHaveAttribute('type', 'datetime-local');
     });
@@ -300,18 +311,18 @@ describe('DrinkHistory', () => {
       const editBtn = screen.getByRole('button', { name: /edit espresso/i });
       fireEvent.click(editBtn);
 
-      const input = screen.getByDisplayValue(epochToDatetimeLocal(TWO_DRINKS[0].timestamp));
+      const input = screen.getByDisplayValue(epochToDatetimeLocal(TWO_DRINKS[0].startedAt));
       fireEvent.change(input, { target: { value: '2026-03-25T09:30' } });
 
       const saveBtn = screen.getByText('Save');
       fireEvent.click(saveBtn);
 
       const updatedDrink = useCaffeineStore.getState().drinks.find((d) => d.id === '1');
-      expect(updatedDrink?.timestamp).toBe(datetimeLocalToEpoch('2026-03-25T09:30'));
+      expect(updatedDrink?.startedAt).toBe(datetimeLocalToEpoch('2026-03-25T09:30'));
     });
 
     it('cancel discards changes', () => {
-      const originalTimestamp = TWO_DRINKS[0].timestamp;
+      const originalTimestamp = TWO_DRINKS[0].startedAt;
       render(<DrinkHistory />);
 
       const editBtn = screen.getByRole('button', { name: /edit espresso/i });
@@ -324,7 +335,7 @@ describe('DrinkHistory', () => {
       fireEvent.click(cancelBtn);
 
       const unchangedDrink = useCaffeineStore.getState().drinks.find((d) => d.id === '1');
-      expect(unchangedDrink?.timestamp).toBe(originalTimestamp);
+      expect(unchangedDrink?.startedAt).toBe(originalTimestamp);
     });
 
     it('only one drink in edit mode at a time', () => {

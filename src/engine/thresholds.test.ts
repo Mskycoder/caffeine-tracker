@@ -115,7 +115,7 @@ describe('getPersonalizedThresholds', () => {
   it('defaults to normal sensitivity when caffeineSensitivity is undefined (migration safety)', () => {
     const settings = makeSettings();
     // Force undefined to simulate old persisted state
-    (settings as Record<string, unknown>).caffeineSensitivity = undefined;
+    (settings as unknown as Record<string, unknown>).caffeineSensitivity = undefined;
     const result = getPersonalizedThresholds(settings);
     expect(result.autonomicMg).toBeCloseTo(41.16, 2);
   });
@@ -177,13 +177,13 @@ describe('getEffectiveThreshold', () => {
 
   it('defaults to manual when thresholdSource is undefined (migration safety)', () => {
     const settings = makeSettings({ thresholdMg: 60 });
-    (settings as Record<string, unknown>).thresholdSource = undefined;
+    (settings as unknown as Record<string, unknown>).thresholdSource = undefined;
     expect(getEffectiveThreshold(settings)).toBe(60);
   });
 
   it('defaults to normal sensitivity when caffeineSensitivity is undefined (migration safety)', () => {
     const settings = makeSettings({ thresholdSource: 'autonomic' });
-    (settings as Record<string, unknown>).caffeineSensitivity = undefined;
+    (settings as unknown as Record<string, unknown>).caffeineSensitivity = undefined;
     const result = getEffectiveThreshold(settings);
     // Should use normal (1.0) multiplier: 0.84 * 0.7 * 70 = 41.16
     expect(result).toBeCloseTo(41.16, 2);

@@ -9,7 +9,8 @@ const mockDrink: DrinkEntry = {
   id: 'drink-1',
   name: 'Espresso',
   caffeineMg: 200,
-  timestamp: new Date('2026-03-25T08:00:00').getTime(),
+  startedAt: new Date('2026-03-25T08:00:00').getTime(),
+  endedAt: new Date('2026-03-25T08:00:00').getTime(),
   presetId: 'espresso',
 };
 
@@ -59,7 +60,7 @@ describe('DrinkRow', () => {
 
   it('shows datetime-local input with Save and Cancel when isEditing is true', () => {
     renderDrinkRow({ isEditing: true });
-    const input = screen.getByDisplayValue(epochToDatetimeLocal(mockDrink.timestamp));
+    const input = screen.getByDisplayValue(epochToDatetimeLocal(mockDrink.startedAt));
     expect(input).toBeInTheDocument();
     expect(input).toHaveAttribute('type', 'datetime-local');
     expect(screen.getByText('Save')).toBeInTheDocument();
@@ -91,7 +92,7 @@ describe('DrinkRow', () => {
     const onSaveEdit = vi.fn();
     renderDrinkRow({ isEditing: true, onSaveEdit });
 
-    const input = screen.getByDisplayValue(epochToDatetimeLocal(mockDrink.timestamp));
+    const input = screen.getByDisplayValue(epochToDatetimeLocal(mockDrink.startedAt));
     fireEvent.change(input, { target: { value: '2026-03-25T09:30' } });
 
     fireEvent.click(screen.getByText('Save'));
@@ -120,5 +121,44 @@ describe('DrinkRow', () => {
     const cancelBtn = screen.getByText('Cancel');
     expect(saveBtn.className).toContain('min-h-[44px]');
     expect(cancelBtn.className).toContain('min-h-[44px]');
+  });
+
+  describe('duration badge', () => {
+    it('shows duration badge for non-instant drinks', () => {
+      const durationDrink: DrinkEntry = {
+        ...mockDrink,
+        endedAt: mockDrink.startedAt + 15 * 60_000,
+      };
+      renderDrinkRow({ drink: durationDrink });
+      expect(screen.getByText(/15m/)).toBeInTheDocument();
+      expect(screen.getByText(/\u00B7/)).toBeInTheDocument();
+    });
+
+    it('does not show duration badge for instant drinks (endedAt === startedAt)', () => {
+      // mockDrink already has endedAt === startedAt
+      renderDrinkRow();
+      const listItem = screen.getByRole('listitem');
+      expect(listItem.textContent).not.toMatch(/\u00B7.*\dm/);
+    });
+
+    it('does not show duration badge for active drinks (endedAt === undefined)', () => {
+      const activeDrink: DrinkEntry = {
+        ...mockDrink,
+        endedAt: undefined,
+      };
+      renderDrinkRow({ drink: activeDrink });
+      const listItem = screen.getByRole('listitem');
+      expect(listItem.textContent).not.toMatch(/\u00B7.*\dm/);
+    });
+
+    it('duration badge has text-gray-400 styling', () => {
+      const durationDrink: DrinkEntry = {
+        ...mockDrink,
+        endedAt: mockDrink.startedAt + 30 * 60_000,
+      };
+      renderDrinkRow({ drink: durationDrink });
+      const badge = screen.getByText(/30m/);
+      expect(badge.className).toContain('text-gray-400');
+    });
   });
 });

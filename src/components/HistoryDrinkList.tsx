@@ -44,11 +44,11 @@ function getFilteredDrinks(drinks: DrinkEntry[], filter: HistoryFilter, now: num
   switch (filter) {
     case 'last7': {
       const cutoff = startOfDay(subDays(today, 6)).getTime();
-      return drinks.filter((d) => d.timestamp >= cutoff);
+      return drinks.filter((d) => d.startedAt >= cutoff);
     }
     case 'last30': {
       const cutoff = startOfDay(subDays(today, 29)).getTime();
-      return drinks.filter((d) => d.timestamp >= cutoff);
+      return drinks.filter((d) => d.startedAt >= cutoff);
     }
   }
 }
@@ -63,7 +63,7 @@ function groupDrinksByDate(drinks: DrinkEntry[]): DrinkDateGroup[] {
   const groupMap = new Map<number, DrinkEntry[]>();
 
   for (const drink of drinks) {
-    const dayKey = startOfDay(new Date(drink.timestamp)).getTime();
+    const dayKey = startOfDay(new Date(drink.startedAt)).getTime();
     const existing = groupMap.get(dayKey);
     if (existing) {
       existing.push(drink);
@@ -75,7 +75,7 @@ function groupDrinksByDate(drinks: DrinkEntry[]): DrinkDateGroup[] {
   return Array.from(groupMap.entries())
     .sort(([a], [b]) => b - a) // newest day first
     .map(([dayKey, dayDrinks]) => {
-      dayDrinks.sort((a, b) => a.timestamp - b.timestamp); // oldest first within day
+      dayDrinks.sort((a, b) => a.startedAt - b.startedAt); // oldest first within day
       return {
         date: new Date(dayKey),
         drinks: dayDrinks,
@@ -158,7 +158,7 @@ export function HistoryDrinkList() {
   }, []);
 
   const handleSaveEdit = useCallback((id: string, timestamp: number) => {
-    updateDrink(id, { timestamp });
+    updateDrink(id, { startedAt: timestamp });
     setEditingId(null);
   }, [updateDrink]);
 
